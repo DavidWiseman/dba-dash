@@ -37,7 +37,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
         run: | 
           Get-ChildItem
-          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_$RELEASE_VERSION.zip"
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_$env:RELEASE_VERSION.zip"
       
       - name: Publish
         uses: softprops/action-gh-release@v1
