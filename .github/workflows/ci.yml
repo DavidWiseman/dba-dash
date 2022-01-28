@@ -19,7 +19,7 @@ jobs:
       - name: Zip 
         shell: powershell
         run: | 
-          $env
-          "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
-          $env:GITHUB_REFNAME
+           Get-ChildItem env:
+           "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
+           $env:GITHUB_REF | Get-Member
 
