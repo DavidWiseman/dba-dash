@@ -15,11 +15,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+          include-prerelease: true
+      - name: Build
+        run: dotnet build -c CLI
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+      - name: Build DB
+        run: msbuild dbadashdb -property:Configuration=CLI
       - name: Zip 
         shell: powershell
         run: | 
-           Get-ChildItem env:
-           "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
-           $env:GITHUB_REF | Get-Member
-
+          $zipPath = "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath $zipPath
+      
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: "DBADash*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
