@@ -35,7 +35,7 @@ jobs:
         shell: powershell
         run: | 
           Get-ChildItem
-          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath DBADash_${{ steps.get_version.outputs.VERSION }}.zip
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_$({ steps.get_version.outputs.VERSION}).zip"
       
       - name: Publish
         uses: softprops/action-gh-release@v1
