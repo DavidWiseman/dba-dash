@@ -35,7 +35,8 @@ jobs:
       - name: Zip 
         shell: powershell
         run: | 
-          Compress-Archive -Path "CLI" -DestinationPath "DBADash.zip"
+          Get-ChildItem
+          Compress-Archive -Path "DBADashBuild\CLI" -DestinationPath "DBADash.zip"
       
       - name: Publish
         uses: softprops/action-gh-release@v1
