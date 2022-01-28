@@ -31,3 +31,15 @@ jobs:
 
       - name: Build DB
         run: msbuild dbadashdb -property:Configuration=CLI
+
+      - name: Zip 
+        shell: powershell
+        run: | 
+          Compress-Archive -Path "CLI" -DestinationPath "DBADash.zip"
+      
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "DBADash.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
