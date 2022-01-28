@@ -34,7 +34,7 @@ jobs:
       - name: Zip 
         shell: powershell
         run: | 
-          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_${{ $env:GITHUB_REF.replace('refs/heads/', '') }}.zip"
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
       
       - name: Publish
         uses: softprops/action-gh-release@v1
