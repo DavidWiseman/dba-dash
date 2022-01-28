@@ -13,6 +13,11 @@ jobs:
         language: [csharp]
 
     steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        shell: bash
+
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -35,7 +40,7 @@ jobs:
         shell: powershell
         run: | 
           Get-ChildItem
-          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_${{ github.ref }}.zip"
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath "DBADash_${{ steps.get_version.outputs.VERSION }}.zip"
       
       - name: Publish
         uses: softprops/action-gh-release@v1
