@@ -1,7 +1,6 @@
 name: DBA Dash Continuous Integration
 
-on:
-  workflow_dispatch:
+on: push
 
 jobs:
   build:
@@ -40,6 +39,7 @@ jobs:
       
       - name: Publish
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: "DBADash.zip"
         env:
