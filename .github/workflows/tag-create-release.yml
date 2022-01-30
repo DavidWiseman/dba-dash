@@ -37,7 +37,17 @@ jobs:
           $version.ToString(3)
           Write-Output "::set-output name=BUILD_NUMBER::$($version.ToString(3))"
 
-      - name: Add Tag
-        uses: rickstaa/action-create-tag@v1
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
+          tag_name: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
+          release_name: Release ${{steps.GetVersion.outputs.BUILD_NUMBER}}
+          body: |
+            Changes in this Release
+            - First Change
+            - Second Change
+          draft: true
+          prerelease: false
