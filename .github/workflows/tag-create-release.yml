@@ -1,5 +1,5 @@
-# Run workflow to create a release+tag based on version of app set in GlobalAssemblyInfo.cs
 name: Tag and Create Release
+# Run workflow to create a release+tag based on version of app set in GlobalAssemblyInfo.cs
 
 on: workflow_dispatch
 
