@@ -37,21 +37,17 @@ jobs:
           $version.ToString(3)
           Write-Output "::set-output name=BUILD_NUMBER::$($version.ToString(3))"
 
-      - name: Changelog
-        uses: scottbrenner/generate-changelog-action@master
-        id: Changelog
-        env:
-          REPO: ${{ github.repository }}
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      - name: Zip
+        if: startsWith(github.ref, 'refs/tags/') 
+        shell: powershell
+        run: | 
+          $zipPath = "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath $zipPath
+     
+      - name: Publish
+        uses: softprops/action-gh-release@v1
         with:
+          files: "DBADash*.zip"
           tag_name: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
-          release_name: Release ${{steps.GetVersion.outputs.BUILD_NUMBER}}
-          body: |
-            ${{ steps.Changelog.outputs.changelog }}
-          draft: true
-          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
