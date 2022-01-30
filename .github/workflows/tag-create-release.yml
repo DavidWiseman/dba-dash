@@ -1,0 +1,42 @@
+name: DBA Dash Continuous Integration
+
+on: push
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [csharp]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+          include-prerelease: true
+      - name: Build
+        run: dotnet build -c CLI
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+      - name: Build DB
+        run: msbuild dbadashdb -property:Configuration=CLI
+
+      - name: Get Version 
+        shell: powershell
+        run: | 
+          $path = [System.IO.Path]::Combine((Get-Location),"DBADashBuild\CLI\DBADash.dll")
+          $version = [System.Reflection.Assembly]::LoadFrom($path).GetName().Version
+          $version.ToString(3)
+          Write-Output "::set-env name=BUILD_NUMBER::$($version.ToString(3))"
+
+      - name: Add Tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{github.BUILD_NUMBER}}
