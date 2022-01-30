@@ -49,5 +49,7 @@ jobs:
         with:
           files: "DBADash*.zip"
           tag_name: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
+          generate_release_notes: true,
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
