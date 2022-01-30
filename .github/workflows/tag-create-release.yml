@@ -37,6 +37,12 @@ jobs:
           $version.ToString(3)
           Write-Output "::set-output name=BUILD_NUMBER::$($version.ToString(3))"
 
+      - name: Changelog
+        uses: scottbrenner/generate-changelog-action@master
+        id: Changelog
+        env:
+          REPO: ${{ github.repository }}
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
@@ -46,8 +52,6 @@ jobs:
           tag_name: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
           release_name: Release ${{steps.GetVersion.outputs.BUILD_NUMBER}}
           body: |
-            Changes in this Release
-            - First Change
-            - Second Change
+            ${{ steps.Changelog.outputs.changelog }}
           draft: true
           prerelease: false
