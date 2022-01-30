@@ -1,6 +1,5 @@
+# Run workflow to create a release+tag based on version of app set in GlobalAssemblyInfo.cs
 name: Tag and Create Release
-
-on: push
 
 jobs:
   build:
@@ -51,5 +50,6 @@ jobs:
           tag_name: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
           generate_release_notes: true,
           draft: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
