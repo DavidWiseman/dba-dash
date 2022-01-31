@@ -25,6 +25,9 @@ jobs:
       - name: Build
         run: dotnet build -c CLI
 
+      - name: Build GUI
+        run: dotnet build DBADashGUI -o DBADashBuild\DBADashGUIOnly
+
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
         
@@ -43,8 +46,10 @@ jobs:
       - name: Zip
         shell: powershell
         run: | 
-          $zipPath = "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
+          $zipPath = "DBADash_${{steps.GetVersion.outputs.BUILD_NUMBER}}.zip"
           Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath $zipPath
+          $guiZipPath = "DBADash_GUIOnly_${{steps.GetVersion.outputs.BUILD_NUMBER}}.zip"
+          Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath $guiZipPath
      
       - name: Publish
         uses: softprops/action-gh-release@v1
