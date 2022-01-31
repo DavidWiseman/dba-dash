@@ -1,6 +1,6 @@
-name: DBA Dash Continuous Integration
+name: Tag and Create Release
 
-on: push
+on: workflow_dispatch
 
 jobs:
   build:
@@ -15,28 +15,45 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 6.0.x
           include-prerelease: true
+
       - name: Build
         run: dotnet build -c CLI
+
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
+        
       - name: Build DB
         run: msbuild dbadashdb -property:Configuration=CLI
+
+      - name: Get Version
+        id: GetVersion 
+        shell: powershell
+        run: | 
+          $path = [System.IO.Path]::Combine((Get-Location),"DBADashBuild\CLI\DBADash.dll")
+          $version = [System.Reflection.Assembly]::LoadFrom($path).GetName().Version
+          $version.ToString(3)
+          Write-Output "::set-output name=BUILD_NUMBER::$($version.ToString(3))"
+
       - name: Zip
         if: startsWith(github.ref, 'refs/tags/') 
         shell: powershell
         run: | 
           $zipPath = "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
           Compress-Archive -Path "DBADashBuild\CLI\*" -DestinationPath $zipPath
-      
+     
       - name: Publish
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: "DBADash*.zip"
+          tag_name: ${{steps.GetVersion.outputs.BUILD_NUMBER}}
+          generate_release_notes: true,
+          draft: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
