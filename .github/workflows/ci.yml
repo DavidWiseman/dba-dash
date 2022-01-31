@@ -41,7 +41,6 @@ jobs:
           Write-Output "::set-output name=BUILD_NUMBER::$($version.ToString(3))"
 
       - name: Zip
-        if: startsWith(github.ref, 'refs/tags/') 
         shell: powershell
         run: | 
           $zipPath = "DBADash_$($env:GITHUB_REF -replace "refs/tags/").zip"
