@@ -679,7 +679,7 @@ namespace DBADashGUI
                 allowedTabs.AddRange(new TabPage[]
                 {
                     tabPerformance, tabObjectExecutionSummary, tabSlowQueries, tabFiles, tabSnapshotsSummary,
-                    tabDBSpace, tabDBConfiguration, tabDBOptions
+                    tabDBSpace, tabDBConfiguration, tabDBOptions, tabTopQueries
                 });
             }
             else if (n.Type == SQLTreeItem.TreeType.AzureDatabase)
@@ -687,7 +687,7 @@ namespace DBADashGUI
                 allowedTabs.AddRange(new TabPage[]
                 {
                     tabPerformance, tabAzureSummary, tabAzureDB, tabPC, tabSlowQueries, tabObjectExecutionSummary,
-                    tabWaits, tabRunningQueries, tabFiles
+                    tabWaits, tabRunningQueries, tabFiles, tabTopQueries
                 });
             }
             else if (n.Type == SQLTreeItem.TreeType.Instance)
