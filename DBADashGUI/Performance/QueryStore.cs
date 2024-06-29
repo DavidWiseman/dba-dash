@@ -18,7 +18,6 @@ namespace DBADashGUI.Performance
 {
     public partial class QueryStore : UserControl, ISetContext, IRefreshData
     {
-
         private DBADashContext CurrentContext;
 
         public QueryStore()
@@ -28,37 +27,70 @@ namespace DBADashGUI.Performance
 
         public void SetContext(DBADashContext context)
         {
+            if (context != CurrentContext)
+            {
+                dgv.DataSource = null;
+            }
+            tsExecute.Text = string.IsNullOrEmpty(context.DatabaseName) ? "Execute (ALL Databases)" : "Execute";
             CurrentContext = context;
         }
 
+        private const int Timeout = 120;
+
+        private string sortColumn = "total_cpu_time_ms";
+
         public async void RefreshData()
         {
+            dgv.DataSource = null;
             var message = new QueryStoreMessage() { CollectAgent = CurrentContext.CollectAgent, ImportAgent = CurrentContext.ImportAgent };
             message.ConnectionID = CurrentContext.InstanceName;
             message.DatabaseName = CurrentContext.DatabaseName;
             message.From = new DateTimeOffset(DateRange.FromUTC, TimeSpan.Zero);
             message.To = new DateTimeOffset(DateRange.ToUTC, TimeSpan.Zero);
             var messageGroup = Guid.NewGuid();
-            await MessageProcessing.SendMessageToService(message.Serialize(), (int)CurrentContext.ImportAgentID, messageGroup, Common.ConnectionString, 120);
+            await MessageProcessing.SendMessageToService(message.Serialize(), (int)CurrentContext.ImportAgentID, messageGroup, Common.ConnectionString, Timeout);
             var completed = false;
             while (!completed)
             {
                 completed = true;
-                var reply = await ReceiveReply(messageGroup);
+                ResponseMessage reply;
+                try
+                {
+                    reply = await ReceiveReply(messageGroup, Timeout * 1000);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 switch (reply.Type)
                 {
                     case ResponseMessage.ResponseTypes.Progress:
                         completed = false;
                         break;
+
                     case ResponseMessage.ResponseTypes.Failure:
                         MessageBox.Show(reply.Message);
                         break;
+
                     case ResponseMessage.ResponseTypes.Success:
                         {
                             var ds = reply.Data;
+                            if (ds == null || ds.Tables.Count == 0)
+                            {
+                                MessageBox.Show("No data returned");
+                                return;
+                            }
+                            var dt = ds.Tables[0];
+                            if (dt.Columns.Count == 0)
+                            {
+                                MessageBox.Show("No data returned");
+                                return;
+                            }
                             dgv.Columns.Clear();
-                            AddColumns(dgv, ds.Tables[0], topQueriesResult);
-                            dgv.DataSource = ds.Tables[0];
+                            AddColumns(dgv, dt, topQueriesResult);
+                            dgv.DataSource = new DataView(dt, null, $"{sortColumn} DESC", DataViewRowState.CurrentRows);
                             dgv.LoadColumnLayout(topQueriesResult.ColumnLayout);
                             dgv.ApplyTheme();
                             break;
@@ -153,7 +185,7 @@ namespace DBADashGUI.Performance
             },
             ColumnLayout = new List<KeyValuePair<string, PersistedColumnLayout>>()
             {
-                new KeyValuePair<string, PersistedColumnLayout>("DB", new PersistedColumnLayout() { Width = 150, Visible = false }),
+                new KeyValuePair<string, PersistedColumnLayout>("DB", new PersistedColumnLayout() { Width = 150, Visible = true }),
                 new KeyValuePair<string, PersistedColumnLayout>("query_id", new PersistedColumnLayout() { Width = 100, Visible = true }),
                 new KeyValuePair<string, PersistedColumnLayout>("object_id", new PersistedColumnLayout() { Width = 100, Visible = true }),
                 new KeyValuePair<string, PersistedColumnLayout>("object_name", new PersistedColumnLayout() { Width = 150, Visible = true }),
@@ -168,16 +200,16 @@ namespace DBADashGUI.Performance
                 new KeyValuePair<string, PersistedColumnLayout>("total_physical_io_reads_kb", new PersistedColumnLayout() { Width = 70, Visible = true }),
                 new KeyValuePair<string, PersistedColumnLayout>("avg_physical_io_reads_kb", new PersistedColumnLayout() { Width = 70, Visible = true }),
                 new KeyValuePair<string, PersistedColumnLayout>("num_plans", new PersistedColumnLayout() { Width = 70, Visible = true }),
-            },  
+            },
         };
 
-        public static async Task<ResponseMessage> ReceiveReply(Guid group)
+        public static async Task<ResponseMessage> ReceiveReply(Guid group, int timeout)
         {
-
             await using var cn = new SqlConnection(Common.ConnectionString);
             await using var cmd = new SqlCommand("Messaging.ReceiveReplyFromServiceToGUI", cn)
             { CommandType = CommandType.StoredProcedure, CommandTimeout = 0 };
             cmd.Parameters.AddWithValue("@ConversationGroupID", group);
+            cmd.Parameters.AddWithValue("@Timeout", timeout);
             await cn.OpenAsync();
             await using var rdr = await cmd.ExecuteReaderAsync();
             if (!rdr.Read()) throw new Exception("No results");
@@ -188,7 +220,6 @@ namespace DBADashGUI.Performance
 
             var msg = ResponseMessage.Deserialize(reply);
             return msg;
-
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)

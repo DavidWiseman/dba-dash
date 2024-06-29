@@ -79,7 +79,7 @@ namespace DBADashGUI
             get => (new List<TabPage>()
             {
                 tabPerformanceSummary, tabPerformance, tabSlowQueries, tabAzureDB, tabAzureSummary, tabPC,
-                tabObjectExecutionSummary, tabWaits, tabRunningQueries, tabMemory, tabJobStats, tabJobTimeline, tabDrivePerformance
+                tabObjectExecutionSummary, tabWaits, tabRunningQueries, tabMemory, tabJobStats, tabJobTimeline, tabDrivePerformance, tabTopQueries
             }).Contains(tabs.SelectedTab) || (tabs.SelectedTab == tabCustomReport && ((SQLTreeItem)tv1.SelectedNode).Report.TimeFilterSupported);
         }
 
@@ -695,7 +695,7 @@ namespace DBADashGUI
                 allowedTabs.AddRange(new TabPage[]
                 {
                     tabPerformanceSummary, tabPerformance, tabPC, tabObjectExecutionSummary, tabSlowQueries, tabWaits,
-                    tabRunningQueries, tabMemory
+                    tabRunningQueries, tabMemory, tabTopQueries
                 });
             }
             else if (n.Type == SQLTreeItem.TreeType.AzureInstance)
