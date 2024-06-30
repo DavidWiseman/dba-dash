@@ -30,19 +30,31 @@ namespace DBADashGUI.Performance
             if (context != CurrentContext)
             {
                 dgv.DataSource = null;
+                txtObjectName.Text = string.Empty;
             }
             tsExecute.Text = string.IsNullOrEmpty(context.DatabaseName) ? "Execute (ALL Databases)" : "Execute";
             CurrentContext = context;
         }
 
         private const int Timeout = 120;
+        private int top = 25;
 
         private string sortColumn = "total_cpu_time_ms";
 
         public async void RefreshData()
         {
+            var objectName = string.Empty;
+            int? objectId = null;
+            if (!int.TryParse(txtObjectName.Text, out var objectIdResult))
+            {
+                objectName = txtObjectName.Text;
+            }
+            else
+            {
+                objectId = objectIdResult;
+            }
             dgv.DataSource = null;
-            var message = new QueryStoreMessage() { CollectAgent = CurrentContext.CollectAgent, ImportAgent = CurrentContext.ImportAgent };
+            var message = new QueryStoreMessage() { CollectAgent = CurrentContext.CollectAgent, ImportAgent = CurrentContext.ImportAgent, Top = top, SortColumn = sortColumn, ObjectName = objectName, ObjectID = objectId, NearestInterval = tsNearestInterval.Checked };
             message.ConnectionID = CurrentContext.InstanceName;
             message.DatabaseName = CurrentContext.DatabaseName;
             message.From = new DateTimeOffset(DateRange.FromUTC, TimeSpan.Zero);
@@ -68,14 +80,16 @@ namespace DBADashGUI.Performance
                 {
                     case ResponseMessage.ResponseTypes.Progress:
                         completed = false;
+                        lblStatus.InvokeSetStatus(reply.Message, string.Empty, DashColors.Information);
                         break;
 
                     case ResponseMessage.ResponseTypes.Failure:
-                        MessageBox.Show(reply.Message);
+                        lblStatus.InvokeSetStatus(reply.Message, reply.Exception?.ToString(), DashColors.Fail);
                         break;
 
                     case ResponseMessage.ResponseTypes.Success:
                         {
+                            lblStatus.InvokeSetStatus(reply.Message, string.Empty, DashColors.Success);
                             var ds = reply.Data;
                             if (ds == null || ds.Tables.Count == 0)
                             {
@@ -89,52 +103,13 @@ namespace DBADashGUI.Performance
                                 return;
                             }
                             dgv.Columns.Clear();
-                            AddColumns(dgv, dt, topQueriesResult);
+                            dgv.AddColumns(dt, topQueriesResult);
                             dgv.DataSource = new DataView(dt, null, $"{sortColumn} DESC", DataViewRowState.CurrentRows);
                             dgv.LoadColumnLayout(topQueriesResult.ColumnLayout);
                             dgv.ApplyTheme();
                             break;
                         }
                 }
-            }
-        }
-
-        /// <summary>
-        /// /////////////
-        /// </summary>
-        private static void AddColumns(DataGridView dgv, DataTable dt, CustomReportResult customReportResult)
-        {
-            foreach (DataColumn dataColumn in dt.Columns)
-            {
-                DataGridViewColumn column;
-
-                if (customReportResult.LinkColumns.ContainsKey(dataColumn.ColumnName))
-                {
-                    column = new DataGridViewLinkColumn();
-                }
-                else if (dataColumn.DataType == typeof(bool))
-                {
-                    column = new DataGridViewCheckBoxColumn();
-                }
-                else
-                {
-                    column = new DataGridViewTextBoxColumn();
-                }
-
-                column.SortMode = DataGridViewColumnSortMode.Automatic;
-                column.DefaultCellStyle.Format =
-                    customReportResult.CellFormatString.TryGetValue(dataColumn.ColumnName, out var value)
-                        ? value
-                        : "";
-
-                column.DataPropertyName = dataColumn.ColumnName;
-                column.Name = dataColumn.ColumnName;
-                column.HeaderText =
-                    customReportResult.ColumnAlias.TryGetValue(column.DataPropertyName, out var alias)
-                        ? alias
-                        : dataColumn.Caption;
-                column.ValueType = dataColumn.DataType;
-                dgv.Columns.Add(column);
             }
         }
 
@@ -242,6 +217,47 @@ namespace DBADashGUI.Performance
                 MessageBox.Show("Error navigating to link: " + ex.Message, "Error", MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
+        }
+
+        private void Top_Select(object sender, EventArgs e)
+        {
+            var menuItem = (ToolStripMenuItem)sender;
+            var topString = menuItem.Tag?.ToString();
+            if (string.IsNullOrEmpty(topString))
+            {
+                CommonShared.ShowInputDialog(ref topString, "Enter top value");
+            }
+
+            if (!int.TryParse(topString, out top)) return;
+
+            foreach (var item in tsTop.DropDownItems.OfType<ToolStripMenuItem>())
+            {
+                item.Checked = false;
+            }
+            tsTop.Text = $"Top {top}";
+            menuItem.Checked = true;
+        }
+
+        private void Sort_Select(object sender, EventArgs e)
+        {
+            var menuItem = (ToolStripMenuItem)sender;
+            sortColumn = menuItem.Tag?.ToString();
+            foreach (var item in tsSort.DropDownItems.OfType<ToolStripMenuItem>())
+            {
+                item.Checked = false;
+            }
+            menuItem.Checked = true;
+            tsSort.Text = $"Sort by {menuItem.Text}";
+        }
+
+        private void TsExcel_Click(object sender, EventArgs e)
+        {
+            Common.PromptSaveDataGridView(ref dgv);
+        }
+
+        private void TsCopy_Click(object sender, EventArgs e)
+        {
+            Common.CopyDataGridViewToClipboard(dgv);
         }
     }
 }

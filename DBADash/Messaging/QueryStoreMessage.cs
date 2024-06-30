@@ -23,7 +23,13 @@ namespace DBADash.Messaging
         public DateTimeOffset To { get; set; }
         public int Top { get; set; } = 25;
 
+        public int? ObjectID { get; set; }
+
+        public string ObjectName { get; set; }
+
         public string SortColumn { get; set; } = "total_cpu_time_ms";
+
+        public bool NearestInterval { get; set; } = true;
 
         private const int maxDegreeOfParallelism = 4;
 
@@ -31,11 +37,11 @@ namespace DBADash.Messaging
         {
             var databases = new List<string>();
             var query = @"
-        SELECT name
+        SELECT D.name
         FROM sys.databases D
-        WHERE is_query_store_on=1
-        AND database_id>4
-        AND state=0
+        WHERE D.is_query_store_on=1
+        AND D.database_id>4
+        AND D.state=0
         AND HAS_DBACCESS(D.name)=1
         AND D.is_in_standby = 0
         AND DATABASEPROPERTYEX(D.name, 'Updateability') = 'READ_WRITE';
@@ -85,16 +91,29 @@ namespace DBADash.Messaging
 
                 // Use a concurrent bag to collect DataTables from parallel tasks.
                 var dataTables = new ConcurrentBag<DataTable>();
+                var exceptions = new ConcurrentBag<Exception>();
 
                 // Execute the query in parallel for each database.
                 Parallel.ForEach(databases, options, async database =>
                 {
-                    var dt = await GetTopQueriesForDatabase(src.ConnectionString, database);
-                    dataTables.Add(dt);
+                    try
+                    {
+                        var dt = await GetTopQueriesForDatabase(src.ConnectionString, database);
+                        dataTables.Add(dt);
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Add(ex);
+                    }
                 });
 
                 // Wait for all parallel tasks to complete (important when using async/await within Parallel.ForEach).
                 await Task.WhenAll(dataTables.Select(dt => Task.CompletedTask));
+
+                if (exceptions.Count > 0)
+                {
+                    throw new AggregateException(exceptions);
+                }
 
                 // Merge all DataTables into a single DataTable.
                 foreach (var dt in dataTables)
@@ -137,10 +156,14 @@ namespace DBADash.Messaging
             await cn.OpenAsync();
             await using var cmd = new SqlCommand(SqlStrings.QueryStoreTopQueries, cn);
             cmd.Parameters.AddWithValue("@Database", db);
-            cmd.Parameters.AddWithValue("@interval_start_time", From);
-            cmd.Parameters.AddWithValue("@interval_end_time ", To);
+            cmd.Parameters.AddWithValue("@FromDate", From);
+            cmd.Parameters.AddWithValue("@ToDate ", To);
             cmd.Parameters.AddWithValue("@Top", Top);
-            cmd.Parameters.AddWithValue("@sort_column", SortColumn);
+            cmd.Parameters.AddWithValue("@SortCol", SortColumn);
+            cmd.Parameters.AddWithValue("@NearestInterval", NearestInterval);
+            cmd.Parameters.AddWithValue("@ObjectID", ObjectID is > 0 ? ObjectID.Value : DBNull.Value);
+            cmd.Parameters.AddWithValue("@ObjectName", string.IsNullOrEmpty(ObjectName) ? DBNull.Value : ObjectName);
+
             var da = new SqlDataAdapter(cmd);
             var dt = new DataTable();
             da.Fill(dt);
