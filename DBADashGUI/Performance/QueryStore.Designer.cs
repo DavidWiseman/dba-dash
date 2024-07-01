@@ -79,7 +79,7 @@
             // toolStrip1
             // 
             toolStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
-            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { TsCopy, tsExcel, tsExecute, tsTop, tsSort, toolStripLabel1, txtObjectName, tsOptions });
+            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { TsCopy, tsExcel, tsOptions, tsExecute, tsTop, tsSort, toolStripLabel1, txtObjectName });
             toolStrip1.Location = new System.Drawing.Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Size = new System.Drawing.Size(1046, 27);
@@ -260,7 +260,6 @@
             // 
             // tsOptions
             // 
-            tsOptions.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
             tsOptions.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             tsOptions.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { tsNearestInterval });
             tsOptions.Image = Properties.Resources.SettingsOutline_16x;
