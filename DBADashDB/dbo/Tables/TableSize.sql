@@ -17,3 +17,6 @@
 	) WITH(DATA_COMPRESSION=PAGE) ON [PS_TableSize](SnapshotDate)
 ) ON [PS_TableSize](SnapshotDate)
 GO
+CREATE UNIQUE NONCLUSTERED INDEX IX_TableSize_ObjectID_SnapshotDate ON dbo.TableSize(ObjectID,SnapshotDate) INCLUDE(row_count,used_pages)
+WITH(DATA_COMPRESSION=PAGE)
+ON PS_TableSize(SnapshotDate)
