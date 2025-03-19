@@ -62,6 +62,11 @@ namespace DBADash.Alert
         [Category("Email Message"), DisplayName("Is HTML?")]
         public bool IsHTML { get; set; }
 
+        [Category("Email Config")]
+        [DisplayName("Check Certificate Revocation")]
+        [Description("Gets or sets whether connecting via SSL/TLS should check certificate revocation.")]
+        public bool CheckCertificateRevocation { get; set; } = true;
+
         private const string DefaultEmailSubjectTemplate = "{Emoji} {AlertKey} {Action} on {Instance}";
         private const string DefaultEmailMessageTemplate = "{Text}";
 
@@ -100,6 +105,7 @@ namespace DBADash.Alert
 
             using var client = new SmtpClient();
             await client.ConnectAsync(Host, Port, SecureSocketOption);
+            client.CheckCertificateRevocation = CheckCertificateRevocation;
             if (!string.IsNullOrEmpty(UserName) || !string.IsNullOrEmpty(Password)) // Authenticate if username or password is supplied
             {
                 await client.AuthenticateAsync(UserName, Password);
