@@ -885,7 +885,7 @@ namespace DBADashServiceConfig
 
         private void SetConnectionCount()
         {
-            int cnt = collectionConfig.SourceConnections.Count;
+            var cnt = collectionConfig.SourceConnections.Count;
             lnkSourceConnections.Text = "Source Connections: " + cnt;
             if (cnt == 0)
             {
@@ -896,6 +896,7 @@ namespace DBADashServiceConfig
             {
                 lnkSourceConnections.LinkColor = DashColors.Success;
             }
+            UpdateThreadCount();
         }
 
         private bool IsSetFromJson;
@@ -935,6 +936,7 @@ namespace DBADashServiceConfig
                 numAlertStartupDelay.Enabled = collectionConfig.AlertProcessingStartupDelaySeconds != null && collectionConfig.ProcessAlerts;
                 chkAlertStartupDelay.Enabled = collectionConfig.ProcessAlerts;
                 txtAllowedCustomProcs.Text = collectionConfig.AllowedCustomProcs;
+                UpdateThreadCount();
                 UpdateSummaryCron();
                 UpdateScanInterval();
                 SetDgv();
@@ -945,6 +947,13 @@ namespace DBADashServiceConfig
             {
                 IsSetFromJson = false;
             }
+        }
+
+        private void UpdateThreadCount()
+        {
+            numThreads.Value = collectionConfig.GetThreadCount();
+            numThreads.Enabled = collectionConfig.ServiceThreads > 0;
+            chkThreads.Checked = collectionConfig.ServiceThreads > 0;
         }
 
         private void UpdateCustomCollectionCount()
@@ -2617,14 +2626,38 @@ namespace DBADashServiceConfig
             var frm = new TimeoutConfig()
             {
                 AddPartitionsTimeout = collectionConfig.AddPartitionsCommandTimeout,
-                PurgeTimeout= collectionConfig.PurgeDataCommandTimeout,
+                PurgeTimeout = collectionConfig.PurgeDataCommandTimeout,
                 ImportTimeout = collectionConfig.ImportCommandTimeout
             };
-            if(frm.ShowDialog() != DialogResult.OK) return;
+            if (frm.ShowDialog() != DialogResult.OK) return;
             collectionConfig.AddPartitionsCommandTimeout = frm.AddPartitionsTimeout;
             collectionConfig.PurgeDataCommandTimeout = frm.PurgeTimeout;
             collectionConfig.ImportCommandTimeout = frm.ImportTimeout;
             SetJson();
+        }
+
+        private void Threads_CheckChanged(object sender, EventArgs e)
+        {
+            UpdateThreads();
+        }
+
+        private void UpdateThreads()
+        {
+            if (!IsSetFromJson)
+            {
+                collectionConfig.ServiceThreads = chkThreads.Checked ? (int)numThreads.Value : -1;
+                numThreads.Enabled = chkThreads.Checked;
+                SetJson();
+            }
+            if(!chkThreads.Checked)
+            {
+                numThreads.Value = collectionConfig.GetThreadCount();
+            }
+        }
+
+        private void Threads_ValueChanged(object sender, EventArgs e)
+        {
+            UpdateThreads();
         }
     }
 }
