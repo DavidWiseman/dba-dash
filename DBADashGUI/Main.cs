@@ -34,6 +34,8 @@ namespace DBADashGUI
             public int InstanceID = -1;
             public string Instance;
             public string Tab;
+            public string Database;
+            public bool SearchFromRoot = false;
         }
 
         private readonly CommandLineOptions commandLine;
@@ -1444,9 +1446,9 @@ namespace DBADashGUI
             DataRetentionForm?.Focus();
         }
 
-        private void Instance_Selected(object sender, InstanceSelectedEventArgs e)
+        public void Instance_Selected(object sender, InstanceSelectedEventArgs e)
         {
-            var root = tv1.SelectedSQLTreeItem();
+            var root = e.SearchFromRoot ? tv1.Nodes[0].AsSQLTreeItem() : tv1.SelectedSQLTreeItem();
 
             SQLTreeItem nInstance;
 
@@ -1475,40 +1477,56 @@ namespace DBADashGUI
                         parent.Expand();
                     }
 
-                    if (e.Tab is "tabSQLAgentAlerts" or "tabQS" or "tabDBOptions") // Configuration Node
+                    var selectedNode = nInstance;
+                    if (!string.IsNullOrEmpty(e.Database) && nInstance.Type != SQLTreeItem.TreeType.AzureDatabase)
                     {
                         nInstance.Expand();
-                        tv1.SelectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.Configuration);
+                        var dbFolder = nInstance.FindChildOfType(SQLTreeItem.TreeType.DatabasesFolder);
+                        dbFolder?.Expand();
+                        var db = dbFolder?.Nodes.Cast<SQLTreeItem>()
+                            .FirstOrDefault(d => string.Equals(d.DatabaseName, e.Database, StringComparison.CurrentCultureIgnoreCase));
+                        if (db == null)
+                        {
+                            MessageBox.Show("Database not found: " + e.Database, "Warning", MessageBoxButtons.OK,
+                                MessageBoxIcon.Warning);
+                        }
+                        selectedNode = db;
                     }
-                    else if (e.Tab is "tabMirroring" or "tabLogShipping" or "tabBackups" or "tabAG")
+                    if (selectedNode == null) return;
+                    switch (e.Tab)
                     {
-                        nInstance.Expand();
-                        tv1.SelectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.HADR);
+                        // Configuration Node
+                        case "tabSQLAgentAlerts" or "tabQS" or "tabDBOptions":
+                            selectedNode.Expand();
+                            selectedNode= nInstance.FindChildOfType(SQLTreeItem.TreeType.Configuration);
+                            break;
+                        case "tabMirroring" or "tabLogShipping" or "tabBackups" or "tabAG":
+                            selectedNode.Expand();
+                            selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.HADR);
+                            break;
+                        // Root Level
+                        case "tabJobs" when parent == null:
+                            selectedNode.Expand();
+                            selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.AgentJobs);
+                            break;
+                        // Instance Level Jobs tab
+                        case "tabJobs" when parent != null:
+                            selectedNode.Expand();
+                            selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.AgentJobs);
+                            break;
+                        case "tabAzureSummary" or "tabPerformance" or "tabPC" or "tabPerformanceSummary" or "tabSlowQueries" or "tabWaits" or "tabMemory" or "tabObjectExecutionSummary":
+                            break;
+                        case "tabFiles" or "tabDrives":
+                            selectedNode.Expand();
+                            selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.Storage);
+                            break;
+                        default:
+                            selectedNode.Expand();
+                            selectedNode = nInstance.Nodes[1].AsSQLTreeItem();
+                            break;
                     }
-                    else if (e.Tab == "tabJobs" && parent == null) // Root Level
-                    {
-                        nInstance.Expand();
-                        tv1.SelectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.AgentJobs);
-                    }
-                    else if (e.Tab == "tabJobs" && parent != null) // Instance Level Jobs tab
-                    {
-                        nInstance.Expand();
-                        tv1.SelectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.AgentJobs);
-                    }
-                    else if (e.Tab is "tabAzureSummary" or "tabPerformance" or "tabPC")
-                    {
-                        tv1.SelectedNode = nInstance;
-                    }
-                    else if (e.Tab is "tabFiles" or "tabDrives")
-                    {
-                        nInstance.Expand();
-                        tv1.SelectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.Storage);
-                    }
-                    else
-                    {
-                        nInstance.Expand();
-                        tv1.SelectedNode = nInstance.Nodes[1];
-                    }
+
+                    tv1.SelectedNode = selectedNode;
 
                     if (e.Tab is { Length: > 0 })
                     {

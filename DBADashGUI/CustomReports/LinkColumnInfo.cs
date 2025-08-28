@@ -9,14 +9,31 @@ namespace DBADashGUI.CustomReports
 {
     public abstract class LinkColumnInfo
     {
-        public abstract void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex);
+        public abstract void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender);
+
+        public static Main GetMainForm(object sender)
+        {
+            var main = sender;
+            while (main != null && main.GetType() != typeof(Main))
+            {
+                if (main is Control c)
+                {
+                    main = c.Parent;
+                }
+                else
+                {
+                    main = null;
+                }
+            }
+            return main as Main;
+        }
     }
 
     public class UrlLinkColumnInfo : LinkColumnInfo
     {
         public string TargetColumn { get; set; }
 
-        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex)
+        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
         {
             var url = row.Cells[TargetColumn].Value.DBNullToNull().ToString() ?? string.Empty;
             try
@@ -66,7 +83,7 @@ namespace DBADashGUI.CustomReports
             }
         }
 
-        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex)
+        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
         {
             var text = row.Cells[TargetColumn].Value.DBNullToNull() as string;
             if (string.IsNullOrEmpty(text)) return;
@@ -78,7 +95,7 @@ namespace DBADashGUI.CustomReports
     {
         public string TargetColumn { get; set; }
 
-        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex)
+        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
         {
             var queryPlan = row.Cells[TargetColumn].Value.DBNullToNull() as string;
             if (!Common.IsValidExecutionPlan(queryPlan))
@@ -94,7 +111,7 @@ namespace DBADashGUI.CustomReports
     {
         public string TargetColumn { get; set; }
 
-        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex)
+        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
         {
             var dlGraph = row.Cells[TargetColumn].Value.DBNullToNull() as string;
             if (!Common.IsValidDeadlockGraph(dlGraph))
@@ -114,7 +131,7 @@ namespace DBADashGUI.CustomReports
 
         private CustomReportViewer customReportViewer;
 
-        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex)
+        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
         {
             customReportViewer?.Close();
             var report = context.Report is SystemReport ? CustomReports.SystemReports.FirstOrDefault(r => r.ProcedureName == ReportProcedureName) : CustomReports.GetCustomReports().FirstOrDefault(r => r.ProcedureName == ReportProcedureName);
@@ -144,4 +161,45 @@ namespace DBADashGUI.CustomReports
             customReportViewer.Show();
         }
     }
+
+    public class NavigateTreeLinkColumnInfo : LinkColumnInfo
+    {
+        public string InstanceIDColumn { get; set; }
+        public string DatabaseNameColumn { get; set; }
+
+        public Tabs Tab { get; set; }
+
+        public enum Tabs
+        {
+            Performance,
+            PerformanceSummary,
+            ObjectExecutionSummary,
+            RunningQueries,
+            Metrics,
+            SlowQueries,
+            Waits,
+            Memory
+        }
+
+        private static readonly List<Tabs>InstanceOnlyTabs = new() { Tabs.PerformanceSummary, Tabs.Metrics, Tabs.Waits, Tabs.Memory,Tabs.RunningQueries };
+
+        public string TabName => Tab == Tabs.Metrics ? "tabPC" : "tab" + Tab.ToString();
+
+        public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
+        {
+            var main =GetMainForm(sender);
+           if(main==null) return;
+           var instanceID = row.Cells[InstanceIDColumn].Value.DBNullToNull() as int?;
+           if(instanceID == null) return;
+            var args = new Main.InstanceSelectedEventArgs()
+           {
+               InstanceID = instanceID.Value,
+               Database = string.IsNullOrEmpty(DatabaseNameColumn) || InstanceOnlyTabs.Contains(Tab)  ? null : row.Cells[DatabaseNameColumn].Value.DBNullToNull() as string,
+               Tab = TabName,
+               SearchFromRoot = true
+           };
+            main.Instance_Selected(sender,args);
+        }
+    }
+
 }

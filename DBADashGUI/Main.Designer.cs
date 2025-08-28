@@ -172,7 +172,6 @@ namespace DBADashGUI
             tabJobDDL = new System.Windows.Forms.TabPage();
             jobDDLHistory1 = new DBADashGUI.Changes.JobDDLHistory();
             tabAG = new System.Windows.Forms.TabPage();
-            ag1 = new DBADashGUI.HA.AG();
             tabQS = new System.Windows.Forms.TabPage();
             queryStore1 = new DBADashGUI.Changes.QueryStore();
             tabRG = new System.Windows.Forms.TabPage();
@@ -287,7 +286,6 @@ namespace DBADashGUI
             tabWaits.SuspendLayout();
             tabMirroring.SuspendLayout();
             tabJobDDL.SuspendLayout();
-            tabAG.SuspendLayout();
             tabQS.SuspendLayout();
             tabRG.SuspendLayout();
             tabAzureDBesourceGovernance.SuspendLayout();
@@ -1116,6 +1114,7 @@ namespace DBADashGUI
             // 
             // tags1
             // 
+            tags1.AllTags = null;
             tags1.Dock = System.Windows.Forms.DockStyle.Fill;
             tags1.Location = new System.Drawing.Point(1, 2);
             tags1.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
@@ -1265,6 +1264,7 @@ namespace DBADashGUI
             // dbFilesControl1
             // 
             dbFilesControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            dbFilesControl1.FileLevel = false;
             dbFilesControl1.IncludeCritical = true;
             dbFilesControl1.IncludeNA = true;
             dbFilesControl1.IncludeOK = true;
@@ -1848,7 +1848,6 @@ namespace DBADashGUI
             // 
             // tabAG
             // 
-            tabAG.Controls.Add(ag1);
             tabAG.Location = new System.Drawing.Point(4, 39);
             tabAG.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
             tabAG.Name = "tabAG";
@@ -1857,15 +1856,6 @@ namespace DBADashGUI
             tabAG.TabIndex = 35;
             tabAG.Text = "Availability Groups";
             tabAG.UseVisualStyleBackColor = true;
-            // 
-            // ag1
-            // 
-            ag1.Dock = System.Windows.Forms.DockStyle.Fill;
-            ag1.Location = new System.Drawing.Point(1, 2);
-            ag1.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
-            ag1.Name = "ag1";
-            ag1.Size = new System.Drawing.Size(190, 53);
-            ag1.TabIndex = 0;
             // 
             // tabQS
             // 
@@ -2608,7 +2598,6 @@ namespace DBADashGUI
             tabWaits.ResumeLayout(false);
             tabMirroring.ResumeLayout(false);
             tabJobDDL.ResumeLayout(false);
-            tabAG.ResumeLayout(false);
             tabQS.ResumeLayout(false);
             tabRG.ResumeLayout(false);
             tabAzureDBesourceGovernance.ResumeLayout(false);

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,7 +32,11 @@ namespace DBADashGUI.CustomReports
         public static DataGridView Grid => new(); // dgv;
         public ToolStripStatusLabel StatusLabel => lblDescription;
         private DBADashContext context;
+
+
+
         public CustomReport Report { get; set; }
+
         private List<CustomSqlParameter> customParams = new();
         private CancellationTokenSource cancellationTokenSource;
         private Guid CurrentMessageGroup;
@@ -1396,7 +1401,7 @@ namespace DBADashGUI.CustomReports
             Report.CustomReportResults[dgv.ResultSetID].LinkColumns?.TryGetValue(colName, out linkColumnInfo);
             try
             {
-                linkColumnInfo?.Navigate(GetContext(), dgv.Rows[e.RowIndex], dgv.ResultSetID);
+                linkColumnInfo?.Navigate(GetContext(), dgv.Rows[e.RowIndex], dgv.ResultSetID,this);
             }
             catch (Exception ex)
             {
