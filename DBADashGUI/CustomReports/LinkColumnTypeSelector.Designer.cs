@@ -328,9 +328,9 @@
             // 
             cboTab.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             cboTab.FormattingEnabled = true;
-            cboTab.Location = new System.Drawing.Point(194, 91);
+            cboTab.Location = new System.Drawing.Point(240, 91);
             cboTab.Name = "cboTab";
-            cboTab.Size = new System.Drawing.Size(151, 28);
+            cboTab.Size = new System.Drawing.Size(193, 28);
             cboTab.TabIndex = 11;
             // 
             // label11
@@ -338,33 +338,33 @@
             label11.AutoSize = true;
             label11.Location = new System.Drawing.Point(19, 60);
             label11.Name = "label11";
-            label11.Size = new System.Drawing.Size(169, 20);
+            label11.Size = new System.Drawing.Size(166, 20);
             label11.TabIndex = 10;
-            label11.Text = "Database Name column";
+            label11.Text = "Database name column";
             // 
             // label4
             // 
             label4.AutoSize = true;
             label4.Location = new System.Drawing.Point(19, 26);
             label4.Name = "label4";
-            label4.Size = new System.Drawing.Size(135, 20);
+            label4.Size = new System.Drawing.Size(178, 20);
             label4.TabIndex = 9;
-            label4.Text = "Instance ID column";
+            label4.Text = "Instance ID/name column";
             // 
             // cboDatabaseNameCol
             // 
             cboDatabaseNameCol.FormattingEnabled = true;
-            cboDatabaseNameCol.Location = new System.Drawing.Point(194, 57);
+            cboDatabaseNameCol.Location = new System.Drawing.Point(240, 57);
             cboDatabaseNameCol.Name = "cboDatabaseNameCol";
-            cboDatabaseNameCol.Size = new System.Drawing.Size(151, 28);
+            cboDatabaseNameCol.Size = new System.Drawing.Size(193, 28);
             cboDatabaseNameCol.TabIndex = 8;
             // 
             // cboInstanceIDCol
             // 
             cboInstanceIDCol.FormattingEnabled = true;
-            cboInstanceIDCol.Location = new System.Drawing.Point(194, 23);
+            cboInstanceIDCol.Location = new System.Drawing.Point(240, 23);
             cboInstanceIDCol.Name = "cboInstanceIDCol";
-            cboInstanceIDCol.Size = new System.Drawing.Size(151, 28);
+            cboInstanceIDCol.Size = new System.Drawing.Size(193, 28);
             cboInstanceIDCol.TabIndex = 7;
             // 
             // label5
