@@ -40,6 +40,22 @@ namespace DBADashGUI.CustomReports
                     }
             };
         }
+
+        public static Picker CreateBooleanPicker(string paramName, string name, bool defaultValue=true,string trueString="Yes",string falseString="No")
+        {
+            return new Picker()
+            {
+                ParameterName = paramName,
+                Name = name,
+                DefaultValue = defaultValue,
+                DataType = typeof(bool),
+                PickerItems = new Dictionary<object, string>()
+                    {
+                        {true, trueString},
+                        {false, falseString}
+                    }
+            };
+        }
     }
 
     public class DBPicker : Picker

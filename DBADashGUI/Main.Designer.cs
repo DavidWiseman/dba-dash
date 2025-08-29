@@ -135,7 +135,7 @@ namespace DBADashGUI
             hardwareChanges1 = new HardwareChanges();
             tabSQLPatching = new System.Windows.Forms.TabPage();
             sqlPatching1 = new SQLPatching();
-            tabInstanceConfig = new System.Windows.Forms.TabPage();
+            tabConfiguration = new System.Windows.Forms.TabPage();
             configurationHistory1 = new ConfigurationHistory();
             tabSlowQueries = new System.Windows.Forms.TabPage();
             slowQueries1 = new SlowQueries();
@@ -151,7 +151,7 @@ namespace DBADashGUI
             azureSummary1 = new DBADashGUI.Performance.AzureSummary();
             tabAzureDB = new System.Windows.Forms.TabPage();
             azureDBResourceStats1 = new DBADashGUI.Performance.AzureDBResourceStats();
-            tabServiceObjectives = new System.Windows.Forms.TabPage();
+            tabAzureServiceObjectives = new System.Windows.Forms.TabPage();
             azureServiceObjectivesHistory1 = new DBADashGUI.Changes.AzureServiceObjectivesHistory();
             tabDBConfiguration = new System.Windows.Forms.TabPage();
             dbConfiguration1 = new DBADashGUI.Changes.DBConfiguration();
@@ -174,9 +174,9 @@ namespace DBADashGUI
             tabAG = new System.Windows.Forms.TabPage();
             tabQS = new System.Windows.Forms.TabPage();
             queryStore1 = new DBADashGUI.Changes.QueryStore();
-            tabRG = new System.Windows.Forms.TabPage();
+            tabResourceGovernor = new System.Windows.Forms.TabPage();
             resourceGovernor1 = new DBADashGUI.Changes.ResourceGovernor();
-            tabAzureDBesourceGovernance = new System.Windows.Forms.TabPage();
+            tabAzureDBResourceGovernance = new System.Windows.Forms.TabPage();
             azureDBResourceGovernance1 = new DBADashGUI.Changes.AzureDBResourceGovernance();
             tabRunningQueries = new System.Windows.Forms.TabPage();
             runningQueries1 = new DBADashGUI.Performance.RunningQueries();
@@ -268,7 +268,7 @@ namespace DBADashGUI
             tabInfo.SuspendLayout();
             tabHardware.SuspendLayout();
             tabSQLPatching.SuspendLayout();
-            tabInstanceConfig.SuspendLayout();
+            tabConfiguration.SuspendLayout();
             tabSlowQueries.SuspendLayout();
             tabTraceFlags.SuspendLayout();
             tabSQLAgentAlerts.SuspendLayout();
@@ -276,7 +276,7 @@ namespace DBADashGUI
             tabDBSpace.SuspendLayout();
             tabAzureSummary.SuspendLayout();
             tabAzureDB.SuspendLayout();
-            tabServiceObjectives.SuspendLayout();
+            tabAzureServiceObjectives.SuspendLayout();
             tabDBConfiguration.SuspendLayout();
             tabDBOptions.SuspendLayout();
             tabTempDB.SuspendLayout();
@@ -287,8 +287,8 @@ namespace DBADashGUI
             tabMirroring.SuspendLayout();
             tabJobDDL.SuspendLayout();
             tabQS.SuspendLayout();
-            tabRG.SuspendLayout();
-            tabAzureDBesourceGovernance.SuspendLayout();
+            tabResourceGovernor.SuspendLayout();
+            tabAzureDBResourceGovernance.SuspendLayout();
             tabRunningQueries.SuspendLayout();
             tabMemory.SuspendLayout();
             tabJobStats.SuspendLayout();
@@ -820,7 +820,7 @@ namespace DBADashGUI
             tabs.Controls.Add(tabInfo);
             tabs.Controls.Add(tabHardware);
             tabs.Controls.Add(tabSQLPatching);
-            tabs.Controls.Add(tabInstanceConfig);
+            tabs.Controls.Add(tabConfiguration);
             tabs.Controls.Add(tabSlowQueries);
             tabs.Controls.Add(tabTraceFlags);
             tabs.Controls.Add(tabSQLAgentAlerts);
@@ -828,7 +828,7 @@ namespace DBADashGUI
             tabs.Controls.Add(tabDBSpace);
             tabs.Controls.Add(tabAzureSummary);
             tabs.Controls.Add(tabAzureDB);
-            tabs.Controls.Add(tabServiceObjectives);
+            tabs.Controls.Add(tabAzureServiceObjectives);
             tabs.Controls.Add(tabDBConfiguration);
             tabs.Controls.Add(tabDBOptions);
             tabs.Controls.Add(tabTempDB);
@@ -840,8 +840,8 @@ namespace DBADashGUI
             tabs.Controls.Add(tabJobDDL);
             tabs.Controls.Add(tabAG);
             tabs.Controls.Add(tabQS);
-            tabs.Controls.Add(tabRG);
-            tabs.Controls.Add(tabAzureDBesourceGovernance);
+            tabs.Controls.Add(tabResourceGovernor);
+            tabs.Controls.Add(tabAzureDBResourceGovernance);
             tabs.Controls.Add(tabRunningQueries);
             tabs.Controls.Add(tabMemory);
             tabs.Controls.Add(tabJobStats);
@@ -1114,6 +1114,7 @@ namespace DBADashGUI
             // 
             // tags1
             // 
+            tags1.AllTags = null;
             tags1.Dock = System.Windows.Forms.DockStyle.Fill;
             tags1.Location = new System.Drawing.Point(1, 2);
             tags1.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
@@ -1454,17 +1455,17 @@ namespace DBADashGUI
             sqlPatching1.Size = new System.Drawing.Size(190, 53);
             sqlPatching1.TabIndex = 0;
             // 
-            // tabInstanceConfig
+            // tabConfiguration
             // 
-            tabInstanceConfig.Controls.Add(configurationHistory1);
-            tabInstanceConfig.Location = new System.Drawing.Point(4, 39);
-            tabInstanceConfig.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabInstanceConfig.Name = "tabInstanceConfig";
-            tabInstanceConfig.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabInstanceConfig.Size = new System.Drawing.Size(192, 57);
-            tabInstanceConfig.TabIndex = 17;
-            tabInstanceConfig.Text = "Configuration";
-            tabInstanceConfig.UseVisualStyleBackColor = true;
+            tabConfiguration.Controls.Add(configurationHistory1);
+            tabConfiguration.Location = new System.Drawing.Point(4, 39);
+            tabConfiguration.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabConfiguration.Name = "tabConfiguration";
+            tabConfiguration.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabConfiguration.Size = new System.Drawing.Size(192, 57);
+            tabConfiguration.TabIndex = 17;
+            tabConfiguration.Text = "Configuration";
+            tabConfiguration.UseVisualStyleBackColor = true;
             // 
             // configurationHistory1
             // 
@@ -1624,17 +1625,17 @@ namespace DBADashGUI
             azureDBResourceStats1.Size = new System.Drawing.Size(190, 53);
             azureDBResourceStats1.TabIndex = 0;
             // 
-            // tabServiceObjectives
+            // tabAzureServiceObjectives
             // 
-            tabServiceObjectives.Controls.Add(azureServiceObjectivesHistory1);
-            tabServiceObjectives.Location = new System.Drawing.Point(4, 39);
-            tabServiceObjectives.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabServiceObjectives.Name = "tabServiceObjectives";
-            tabServiceObjectives.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabServiceObjectives.Size = new System.Drawing.Size(192, 57);
-            tabServiceObjectives.TabIndex = 25;
-            tabServiceObjectives.Text = "Azure Service Objectives";
-            tabServiceObjectives.UseVisualStyleBackColor = true;
+            tabAzureServiceObjectives.Controls.Add(azureServiceObjectivesHistory1);
+            tabAzureServiceObjectives.Location = new System.Drawing.Point(4, 39);
+            tabAzureServiceObjectives.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabAzureServiceObjectives.Name = "tabAzureServiceObjectives";
+            tabAzureServiceObjectives.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabAzureServiceObjectives.Size = new System.Drawing.Size(192, 57);
+            tabAzureServiceObjectives.TabIndex = 25;
+            tabAzureServiceObjectives.Text = "Azure Service Objectives";
+            tabAzureServiceObjectives.UseVisualStyleBackColor = true;
             // 
             // azureServiceObjectivesHistory1
             // 
@@ -1877,17 +1878,17 @@ namespace DBADashGUI
             queryStore1.Size = new System.Drawing.Size(190, 53);
             queryStore1.TabIndex = 0;
             // 
-            // tabRG
+            // tabResourceGovernor
             // 
-            tabRG.Controls.Add(resourceGovernor1);
-            tabRG.Location = new System.Drawing.Point(4, 39);
-            tabRG.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabRG.Name = "tabRG";
-            tabRG.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabRG.Size = new System.Drawing.Size(192, 57);
-            tabRG.TabIndex = 37;
-            tabRG.Text = "Resource Governor";
-            tabRG.UseVisualStyleBackColor = true;
+            tabResourceGovernor.Controls.Add(resourceGovernor1);
+            tabResourceGovernor.Location = new System.Drawing.Point(4, 39);
+            tabResourceGovernor.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabResourceGovernor.Name = "tabResourceGovernor";
+            tabResourceGovernor.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabResourceGovernor.Size = new System.Drawing.Size(192, 57);
+            tabResourceGovernor.TabIndex = 37;
+            tabResourceGovernor.Text = "Resource Governor";
+            tabResourceGovernor.UseVisualStyleBackColor = true;
             // 
             // resourceGovernor1
             // 
@@ -1898,17 +1899,17 @@ namespace DBADashGUI
             resourceGovernor1.Size = new System.Drawing.Size(190, 53);
             resourceGovernor1.TabIndex = 0;
             // 
-            // tabAzureDBesourceGovernance
+            // tabAzureDBResourceGovernance
             // 
-            tabAzureDBesourceGovernance.Controls.Add(azureDBResourceGovernance1);
-            tabAzureDBesourceGovernance.Location = new System.Drawing.Point(4, 39);
-            tabAzureDBesourceGovernance.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabAzureDBesourceGovernance.Name = "tabAzureDBesourceGovernance";
-            tabAzureDBesourceGovernance.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabAzureDBesourceGovernance.Size = new System.Drawing.Size(192, 57);
-            tabAzureDBesourceGovernance.TabIndex = 38;
-            tabAzureDBesourceGovernance.Text = "Azure Resource Governance";
-            tabAzureDBesourceGovernance.UseVisualStyleBackColor = true;
+            tabAzureDBResourceGovernance.Controls.Add(azureDBResourceGovernance1);
+            tabAzureDBResourceGovernance.Location = new System.Drawing.Point(4, 39);
+            tabAzureDBResourceGovernance.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabAzureDBResourceGovernance.Name = "tabAzureDBResourceGovernance";
+            tabAzureDBResourceGovernance.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabAzureDBResourceGovernance.Size = new System.Drawing.Size(192, 57);
+            tabAzureDBResourceGovernance.TabIndex = 38;
+            tabAzureDBResourceGovernance.Text = "Azure Resource Governance";
+            tabAzureDBResourceGovernance.UseVisualStyleBackColor = true;
             // 
             // azureDBResourceGovernance1
             // 
@@ -2579,7 +2580,7 @@ namespace DBADashGUI
             tabInfo.ResumeLayout(false);
             tabHardware.ResumeLayout(false);
             tabSQLPatching.ResumeLayout(false);
-            tabInstanceConfig.ResumeLayout(false);
+            tabConfiguration.ResumeLayout(false);
             tabSlowQueries.ResumeLayout(false);
             tabTraceFlags.ResumeLayout(false);
             tabSQLAgentAlerts.ResumeLayout(false);
@@ -2587,7 +2588,7 @@ namespace DBADashGUI
             tabDBSpace.ResumeLayout(false);
             tabAzureSummary.ResumeLayout(false);
             tabAzureDB.ResumeLayout(false);
-            tabServiceObjectives.ResumeLayout(false);
+            tabAzureServiceObjectives.ResumeLayout(false);
             tabDBConfiguration.ResumeLayout(false);
             tabDBOptions.ResumeLayout(false);
             tabTempDB.ResumeLayout(false);
@@ -2598,8 +2599,8 @@ namespace DBADashGUI
             tabMirroring.ResumeLayout(false);
             tabJobDDL.ResumeLayout(false);
             tabQS.ResumeLayout(false);
-            tabRG.ResumeLayout(false);
-            tabAzureDBesourceGovernance.ResumeLayout(false);
+            tabResourceGovernor.ResumeLayout(false);
+            tabAzureDBResourceGovernance.ResumeLayout(false);
             tabRunningQueries.ResumeLayout(false);
             tabMemory.ResumeLayout(false);
             tabJobStats.ResumeLayout(false);
@@ -2665,7 +2666,7 @@ namespace DBADashGUI
         private HardwareChanges hardwareChanges1;
         private System.Windows.Forms.TabPage tabSQLPatching;
         private SQLPatching sqlPatching1;
-        private System.Windows.Forms.TabPage tabInstanceConfig;
+        private System.Windows.Forms.TabPage tabConfiguration;
         private ConfigurationHistory configurationHistory1;
         private System.Windows.Forms.TabPage tabSlowQueries;
         private SlowQueries slowQueries1;
@@ -2706,7 +2707,7 @@ namespace DBADashGUI
         private System.Windows.Forms.DataGridViewTextBoxColumn dataGridViewTextBoxColumn23;
         private System.Windows.Forms.TabPage tabAzureDB;
         private Performance.AzureDBResourceStats azureDBResourceStats1;
-        private System.Windows.Forms.TabPage tabServiceObjectives;
+        private System.Windows.Forms.TabPage tabAzureServiceObjectives;
         private Changes.AzureServiceObjectivesHistory azureServiceObjectivesHistory1;
         private System.Windows.Forms.TabPage tabDBConfiguration;
         private Changes.DBConfiguration dbConfiguration1;
@@ -2733,9 +2734,9 @@ namespace DBADashGUI
         private HA.AG ag1;
         private System.Windows.Forms.TabPage tabQS;
         private Changes.QueryStore queryStore1;
-        private System.Windows.Forms.TabPage tabRG;
+        private System.Windows.Forms.TabPage tabResourceGovernor;
         private Changes.ResourceGovernor resourceGovernor1;
-        private System.Windows.Forms.TabPage tabAzureDBesourceGovernance;
+        private System.Windows.Forms.TabPage tabAzureDBResourceGovernance;
         private Changes.AzureDBResourceGovernance azureDBResourceGovernance1;
         private System.Windows.Forms.TabPage tabRunningQueries;
         private Performance.RunningQueries runningQueries1;

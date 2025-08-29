@@ -910,5 +910,6 @@ namespace DBADashGUI
         }
 
         public static string TabName(this Main.Tabs tab) => "tab" + tab;
+
     }
 }

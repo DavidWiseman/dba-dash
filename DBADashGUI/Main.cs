@@ -23,6 +23,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DBADashGUI.Changes;
+using DocumentFormat.OpenXml.Office.CustomUI;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Version = System.Version;
 
@@ -70,12 +71,29 @@ namespace DBADashGUI
             SnapshotSummary,
             DBConfiguration,
             TopQueries,
-            QueryStoreForcedPlans
+            QueryStoreForcedPlans,
+            InstanceMetadata,
+            Alerts,
+            RunningJobs,
+            JobTimeline,
+            JobStats,
+            Configuration,
+            TraceFlags,
+            Hardware,
+            SQLPatching,
+            Drivers,
+            TempDB,
+            ResourceGovernor,
+            ServerServices,
+            AzureServiceObjectives,
+            AzureDBResourceGovernance,
+            Tags,
+            TableSize
         }
 
         private static readonly List<Main.Tabs> InstanceOnlyTabs = new() { Main.Tabs.PerformanceSummary, Tabs.Metrics, Tabs.Waits, Tabs.Memory, Tabs.RunningQueries };
 
-    
+        public static Main MainFormInstance { get; private set; }
 
         private readonly CommandLineOptions commandLine;
         private readonly List<int> commandLineTags = new();
@@ -99,6 +117,7 @@ namespace DBADashGUI
             commandLine = opts;
             Disposed += OnDispose;
             AddTabs();
+            MainFormInstance = this;
         }
 
         private void AddTabs()
@@ -110,12 +129,12 @@ namespace DBADashGUI
                 CommunityToolsTabPages.Add(proc, tab);
                 tabs.TabPages.Add(tab);
             }
-            tabDBADashAlerts = new TabPage("Alerts");
+            tabDBADashAlerts = new TabPage("Alerts"){ Name =  Tabs.Alerts.TabName()};
             var alertsCsControl = new ActiveAlerts() { Dock = DockStyle.Fill };
             alertsCsControl.Instance_Selected += Instance_Selected;
             tabDBADashAlerts.Controls.Add(alertsCsControl);
 
-            tabOfflineInstances = new TabPage("Offline Instances") { Name = "tabOfflineInstances" };
+            tabOfflineInstances = new TabPage("Offline Instances") { Name = Tabs.OfflineInstances.TabName() };
             var offlineInstancesControl = new OfflineInstances() { Dock = DockStyle.Fill };
             tabOfflineInstances.Controls.Add(offlineInstancesControl);
 
@@ -123,7 +142,7 @@ namespace DBADashGUI
             tabJobInfo.Controls.Add(new JobInfo() { Dock = DockStyle.Fill });
             tabs.TabPages.Add(tabJobInfo);
 
-            tabCloudMetadata = new TabPage("Instance Metadata");
+            tabCloudMetadata = new TabPage("Instance Metadata") {Name = Tabs.InstanceMetadata.TabName()};
             tabCloudMetadata.Controls.Add(new InstanceMetadata() { Dock = DockStyle.Fill });
             tabs.TabPages.Add(tabCloudMetadata);
         }
@@ -879,14 +898,14 @@ namespace DBADashGUI
                 {
                     allowedTabs.AddRange(new[]
                     {
-                        tabInstanceConfig, tabTraceFlags, tabHardware, tabSQLPatching, tabSQLAgentAlerts, tabDrivers, tabTempDB,
-                        tabRG, tabServerServices
+                        tabConfiguration, tabTraceFlags, tabHardware, tabSQLPatching, tabSQLAgentAlerts, tabDrivers, tabTempDB,
+                        tabResourceGovernor, tabServerServices
                     });
                 }
 
                 if (parent.Type != SQLTreeItem.TreeType.Instance && hasAzureDBs)
                 {
-                    allowedTabs.AddRange(new[] { tabServiceObjectives, tabAzureDBesourceGovernance });
+                    allowedTabs.AddRange(new[] { tabAzureServiceObjectives, tabAzureDBResourceGovernance });
                 }
 
                 allowedTabs.AddRange(new[] { tabDBConfiguration, tabDBOptions, tabQS, tabTags });
@@ -1050,6 +1069,11 @@ namespace DBADashGUI
 
         private void Tv1_AfterSelect(object sender, TreeViewEventArgs e)
         {
+            if (e.Node == null) return;
+            e.Node.TreeView.BeginUpdate();
+            e.Node.NodeFont = new Font(tv1.Font, FontStyle.Bold);
+            e.Node.TreeView.EndUpdate();
+
             var suppress = suppressLoadTab;
             suppressLoadTab = true; // Don't Load tab while adding/removing tabs
             var n = tv1.SelectedSQLTreeItem();
@@ -1535,8 +1559,8 @@ namespace DBADashGUI
                     {
                         case Tabs.Files or Tabs.DBSpace or Tabs.SnapshotSummary or Tabs.DBConfiguration or Tabs.DBOptions or Tabs.QS when selectedNode.Type == SQLTreeItem.TreeType.Database:
                             break;
-                        // Configuration Node
-                        case Tabs.SQLAgentAlerts or Tabs.QS or Tabs.DBOptions or Tabs.DBConfiguration:
+                        case Tabs.SQLAgentAlerts or Tabs.QS or Tabs.DBOptions or Tabs.DBConfiguration or Tabs.InstanceMetadata or Tabs.Configuration or Tabs.TraceFlags or Tabs.Hardware or Tabs.SQLPatching or Tabs.Drivers or Tabs.TempDB 
+                            or Tabs.ResourceGovernor or Tabs.ServerServices or Tabs.AzureServiceObjectives or Tabs.AzureDBResourceGovernance or Tabs.Tags:
                             selectedNode.Expand();
                             selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.Configuration);
                             break;
@@ -1545,20 +1569,13 @@ namespace DBADashGUI
                             selectedNode.Expand();
                             selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.HADR);
                             break;
-                        // Root Level
-                        case Tabs.Jobs when parent == null:
+                        case Tabs.Jobs or Tabs.RunningJobs or Tabs.JobTimeline or Tabs.JobStats:
                             selectedNode.Expand();
                             selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.AgentJobs);
                             break;
-                        // Instance Level Jobs tab
-                        case Tabs.Jobs when parent != null:
-                            selectedNode.Expand();
-                            selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.AgentJobs);
-                            break;
-
                         case Tabs.AzureSummary or Tabs.Performance or Tabs.Metrics or Tabs.PerformanceSummary or Tabs.SlowQueries or Tabs.Waits or Tabs.Memory or Tabs.ObjectExecutionSummary or Tabs.TopQueries or Tabs.QueryStoreForcedPlans:
                             break;
-                        case Tabs.Files or Tabs.Drives:
+                        case Tabs.Files or Tabs.Drives or Tabs.TableSize or Tabs.DBSpace:
                             selectedNode.Expand();
                             selectedNode = nInstance.FindChildOfType(SQLTreeItem.TreeType.Storage);
                             break;
@@ -1826,7 +1843,9 @@ namespace DBADashGUI
 
         private void Tv1_BeforeSelect(object sender, TreeViewCancelEventArgs e)
         {
+            if (tv1.SelectedNode == null) return;
             SaveContext(tv1.SelectedNode, tabs.SelectedIndex);
+            tv1.SelectedNode.NodeFont = new Font(tv1.Font, FontStyle.Regular);
         }
 
         /// <summary>

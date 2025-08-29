@@ -683,9 +683,52 @@ namespace DBADashGUI
 
         private async void FindDatabase(object sender, EventArgs e)
         {
-            const int MaxMatches = 10;
+          
             var dbName = string.Empty;
             if (CommonShared.ShowInputDialog(ref dbName, "Find Database", default, "Enter database name") != DialogResult.OK || string.IsNullOrEmpty(dbName)) return;
+            ShowFindDatabaseDialog(dbName);
+            //await FindDatabaseLegacy(dbName);
+        }
+
+        private CustomReportViewer databaseFinderDialog;
+        private int? databaseFinderWidth;
+        private int? databaseFinderHeight;
+
+        private void ShowFindDatabaseDialog(string dbName)
+        {
+            databaseFinderDialog?.Close();
+            var report = SystemReports.DatabaseFinder;
+            var tempContext = (DBADashContext)Context.DeepCopy();
+            tempContext.Report = report;
+            databaseFinderWidth ??= Convert.ToInt32(Math.Max(Main.MainFormInstance.Width * 0.7, 800));
+            databaseFinderHeight ??= Convert.ToInt32(Math.Max(Main.MainFormInstance.Height * 0.7, 600));
+            databaseFinderDialog = new CustomReportViewer
+            {
+                Context = tempContext,
+                Width = databaseFinderWidth.Value,
+                Height = databaseFinderHeight.Value,
+                CustomParams = new List<CustomSqlParameter>()
+                {
+                    new CustomSqlParameter()
+                    {
+                        Param = new SqlParameter("@SearchString", System.Data.SqlDbType.NVarChar, 128) { Value = "%" + dbName + "%"},
+                    }
+                }
+            };
+            databaseFinderDialog.SizeChanged += (s, e) =>
+            {
+                if (databaseFinderDialog.WindowState is FormWindowState.Maximized or FormWindowState.Minimized) return;
+                databaseFinderWidth = databaseFinderDialog.Width;
+                databaseFinderHeight = databaseFinderDialog.Height;
+            };
+            databaseFinderDialog.FormClosed += (s, e) => databaseFinderDialog = null;
+            databaseFinderDialog.Show();
+        }
+
+
+        private async Task FindDatabaseLegacy(string dbName)
+        {
+            const int MaxMatches = 10;
             try
             {
                 var dbs = await CommonData.GetDatabasesAsync(Context.InstanceIDs, dbName);

@@ -91,8 +91,8 @@ namespace DBADashGUI.CustomReports
                     break;
                 case NavigateTreeLinkColumnInfo navigateTree:
                     optNavigateTree.Checked = true;
-                    cboDatabaseNameCol.Text = navigateTree.DatabaseNameColumn;
-                    cboInstanceIDCol.Text = navigateTree.InstanceIDColumn;
+                    cboDatabaseNameCol.Text = navigateTree.DatabaseColumn;
+                    cboInstanceIDCol.Text = navigateTree.InstanceColumn;
                     cboTab.Text = navigateTree.Tab.ToString();
                     SetTab();
                     break;
@@ -137,8 +137,8 @@ namespace DBADashGUI.CustomReports
             {
                 LinkColumnInfo = new NavigateTreeLinkColumnInfo()
                 {
-                    DatabaseNameColumn = cboDatabaseNameCol.Text,
-                    InstanceIDColumn = cboInstanceIDCol.Text,
+                    DatabaseColumn = cboDatabaseNameCol.Text,
+                    InstanceColumn = cboInstanceIDCol.Text,
                     Tab = Enum.Parse<Main.Tabs>(cboTab.Text, true)
                 };
             }
