@@ -167,35 +167,21 @@ namespace DBADashGUI.CustomReports
         public string InstanceIDColumn { get; set; }
         public string DatabaseNameColumn { get; set; }
 
-        public Tabs Tab { get; set; }
+        public Main.Tabs Tab { get; set; }
 
-        public enum Tabs
-        {
-            Performance,
-            PerformanceSummary,
-            ObjectExecutionSummary,
-            RunningQueries,
-            Metrics,
-            SlowQueries,
-            Waits,
-            Memory
-        }
-
-        private static readonly List<Tabs>InstanceOnlyTabs = new() { Tabs.PerformanceSummary, Tabs.Metrics, Tabs.Waits, Tabs.Memory,Tabs.RunningQueries };
-
-        public string TabName => Tab == Tabs.Metrics ? "tabPC" : "tab" + Tab.ToString();
 
         public override void Navigate(DBADashContext context, DataGridViewRow row, int selectedTableIndex, object sender)
         {
             var main =GetMainForm(sender);
            if(main==null) return;
-           var instanceID = row.Cells[InstanceIDColumn].Value.DBNullToNull() as int?;
-           if(instanceID == null) return;
+           var instanceId = row.Cells[InstanceIDColumn].Value.DBNullToNull() as int?;
+           var instanceName = row.Cells[InstanceIDColumn].Value.DBNullToNull() as string;
             var args = new Main.InstanceSelectedEventArgs()
            {
-               InstanceID = instanceID.Value,
-               Database = string.IsNullOrEmpty(DatabaseNameColumn) || InstanceOnlyTabs.Contains(Tab)  ? null : row.Cells[DatabaseNameColumn].Value.DBNullToNull() as string,
-               Tab = TabName,
+               InstanceID = instanceId ?? 0,
+               Instance = instanceName,
+               Database = string.IsNullOrEmpty(DatabaseNameColumn) ? null : row.Cells[DatabaseNameColumn].Value.DBNullToNull() as string,
+               Tab = Tab,
                SearchFromRoot = true
            };
             main.Instance_Selected(sender,args);

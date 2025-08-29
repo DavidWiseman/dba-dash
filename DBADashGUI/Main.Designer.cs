@@ -84,7 +84,7 @@ namespace DBADashGUI
             mnuTags = new System.Windows.Forms.ToolStripDropDownButton();
             groupToolStripMenuItem = new System.Windows.Forms.ToolStripDropDownButton();
             tabs = new ThemedTabControl();
-            tabSnapshotsSummary = new System.Windows.Forms.TabPage();
+            tabSnapshotSummary = new System.Windows.Forms.TabPage();
             schemaSnapshots1 = new DBADashGUI.Changes.SchemaSnapshots();
             tabSchema = new System.Windows.Forms.TabPage();
             splitSchemaSnapshot = new System.Windows.Forms.SplitContainer();
@@ -161,7 +161,7 @@ namespace DBADashGUI
             tempDBConfig1 = new DBADashGUI.DBFiles.TempDBConfig();
             tabCustomChecks = new System.Windows.Forms.TabPage();
             customChecks1 = new DBADashGUI.Checks.CustomChecks();
-            tabPC = new System.Windows.Forms.TabPage();
+            tabMetrics = new System.Windows.Forms.TabPage();
             performanceCounterSummary1 = new DBADashGUI.Performance.PerformanceCounterSummary();
             tabObjectExecutionSummary = new System.Windows.Forms.TabPage();
             objectExecutionSummary1 = new DBADashGUI.Performance.ObjectExecutionSummary();
@@ -245,7 +245,7 @@ namespace DBADashGUI
             searchLayout.SuspendLayout();
             toolStrip2.SuspendLayout();
             tabs.SuspendLayout();
-            tabSnapshotsSummary.SuspendLayout();
+            tabSnapshotSummary.SuspendLayout();
             tabSchema.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitSchemaSnapshot).BeginInit();
             splitSchemaSnapshot.Panel1.SuspendLayout();
@@ -281,7 +281,7 @@ namespace DBADashGUI
             tabDBOptions.SuspendLayout();
             tabTempDB.SuspendLayout();
             tabCustomChecks.SuspendLayout();
-            tabPC.SuspendLayout();
+            tabMetrics.SuspendLayout();
             tabObjectExecutionSummary.SuspendLayout();
             tabWaits.SuspendLayout();
             tabMirroring.SuspendLayout();
@@ -803,7 +803,7 @@ namespace DBADashGUI
             // 
             // tabs
             // 
-            tabs.Controls.Add(tabSnapshotsSummary);
+            tabs.Controls.Add(tabSnapshotSummary);
             tabs.Controls.Add(tabSchema);
             tabs.Controls.Add(tabTags);
             tabs.Controls.Add(tabDrives);
@@ -833,7 +833,7 @@ namespace DBADashGUI
             tabs.Controls.Add(tabDBOptions);
             tabs.Controls.Add(tabTempDB);
             tabs.Controls.Add(tabCustomChecks);
-            tabs.Controls.Add(tabPC);
+            tabs.Controls.Add(tabMetrics);
             tabs.Controls.Add(tabObjectExecutionSummary);
             tabs.Controls.Add(tabWaits);
             tabs.Controls.Add(tabMirroring);
@@ -869,17 +869,17 @@ namespace DBADashGUI
             tabs.Tag = "";
             tabs.SelectedIndexChanged += Tabs_SelectedIndexChanged;
             // 
-            // tabSnapshotsSummary
+            // tabSnapshotSummary
             // 
-            tabSnapshotsSummary.Controls.Add(schemaSnapshots1);
-            tabSnapshotsSummary.Location = new System.Drawing.Point(4, 39);
-            tabSnapshotsSummary.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
-            tabSnapshotsSummary.Name = "tabSnapshotsSummary";
-            tabSnapshotsSummary.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
-            tabSnapshotsSummary.Size = new System.Drawing.Size(1578, 955);
-            tabSnapshotsSummary.TabIndex = 1;
-            tabSnapshotsSummary.Text = "Snapshot Summary";
-            tabSnapshotsSummary.UseVisualStyleBackColor = true;
+            tabSnapshotSummary.Controls.Add(schemaSnapshots1);
+            tabSnapshotSummary.Location = new System.Drawing.Point(4, 39);
+            tabSnapshotSummary.Margin = new System.Windows.Forms.Padding(3, 5, 3, 5);
+            tabSnapshotSummary.Name = "tabSnapshotSummary";
+            tabSnapshotSummary.Padding = new System.Windows.Forms.Padding(3, 5, 3, 5);
+            tabSnapshotSummary.Size = new System.Drawing.Size(1578, 955);
+            tabSnapshotSummary.TabIndex = 1;
+            tabSnapshotSummary.Text = "Snapshot Summary";
+            tabSnapshotSummary.UseVisualStyleBackColor = true;
             // 
             // schemaSnapshots1
             // 
@@ -1114,7 +1114,6 @@ namespace DBADashGUI
             // 
             // tags1
             // 
-            tags1.AllTags = null;
             tags1.Dock = System.Windows.Forms.DockStyle.Fill;
             tags1.Location = new System.Drawing.Point(1, 2);
             tags1.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
@@ -1737,17 +1736,17 @@ namespace DBADashGUI
             customChecks1.TabIndex = 0;
             customChecks1.Test = null;
             // 
-            // tabPC
+            // tabMetrics
             // 
-            tabPC.Controls.Add(performanceCounterSummary1);
-            tabPC.Location = new System.Drawing.Point(4, 39);
-            tabPC.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabPC.Name = "tabPC";
-            tabPC.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
-            tabPC.Size = new System.Drawing.Size(192, 57);
-            tabPC.TabIndex = 30;
-            tabPC.Text = "Metrics";
-            tabPC.UseVisualStyleBackColor = true;
+            tabMetrics.Controls.Add(performanceCounterSummary1);
+            tabMetrics.Location = new System.Drawing.Point(4, 39);
+            tabMetrics.Margin = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabMetrics.Name = "tabMetrics";
+            tabMetrics.Padding = new System.Windows.Forms.Padding(1, 2, 1, 2);
+            tabMetrics.Size = new System.Drawing.Size(192, 57);
+            tabMetrics.TabIndex = 30;
+            tabMetrics.Text = "Metrics";
+            tabMetrics.UseVisualStyleBackColor = true;
             // 
             // performanceCounterSummary1
             // 
@@ -2554,7 +2553,7 @@ namespace DBADashGUI
             toolStrip2.ResumeLayout(false);
             toolStrip2.PerformLayout();
             tabs.ResumeLayout(false);
-            tabSnapshotsSummary.ResumeLayout(false);
+            tabSnapshotSummary.ResumeLayout(false);
             tabSchema.ResumeLayout(false);
             splitSchemaSnapshot.Panel1.ResumeLayout(false);
             splitSchemaSnapshot.Panel1.PerformLayout();
@@ -2593,7 +2592,7 @@ namespace DBADashGUI
             tabDBOptions.ResumeLayout(false);
             tabTempDB.ResumeLayout(false);
             tabCustomChecks.ResumeLayout(false);
-            tabPC.ResumeLayout(false);
+            tabMetrics.ResumeLayout(false);
             tabObjectExecutionSummary.ResumeLayout(false);
             tabWaits.ResumeLayout(false);
             tabMirroring.ResumeLayout(false);
@@ -2627,7 +2626,7 @@ namespace DBADashGUI
         private System.Windows.Forms.SplitContainer splitMain;
         private ThemedTabControl tabs;
         private System.Windows.Forms.TabPage tabSchema;
-        private System.Windows.Forms.TabPage tabSnapshotsSummary;
+        private System.Windows.Forms.TabPage tabSnapshotSummary;
         private System.Windows.Forms.ImageList TreeViewImageList;
         private System.Windows.Forms.SplitContainer splitSchemaSnapshot;
         private System.Windows.Forms.DataGridView gvHistory;
@@ -2717,7 +2716,7 @@ namespace DBADashGUI
         private DBFiles.TempDBConfig tempDBConfig1;
         private System.Windows.Forms.TabPage tabCustomChecks;
         private Checks.CustomChecks customChecks1;
-        private System.Windows.Forms.TabPage tabPC;
+        private System.Windows.Forms.TabPage tabMetrics;
         private Performance.PerformanceCounterSummary performanceCounterSummary1;
         private CollectionDates.CollectionErrors collectionErrors1;
         private System.Windows.Forms.TabPage tabObjectExecutionSummary;

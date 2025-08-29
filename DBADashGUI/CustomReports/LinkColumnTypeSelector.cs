@@ -55,7 +55,7 @@ namespace DBADashGUI.CustomReports
             cboTargetColumn.Items.AddRange(ColumnList.ToArray<object>());
             cboInstanceIDCol.Items.AddRange(ColumnList.ToArray<object>());
             cboDatabaseNameCol.Items.AddRange(ColumnList.ToArray<object>());
-            cboTab.Items.AddRange( Enum.GetValues<NavigateTreeLinkColumnInfo.Tabs>().Cast<object>().ToArray());
+            cboTab.Items.AddRange( Enum.GetValues<Main.Tabs>().Cast<object>().OrderBy(t=>t.ToString()).ToArray());
             cboReport.Text = Context.Report.ProcedureName;
             cboTargetColumn.Text = LinkColumn;
             txtLinkColumn.Text = LinkColumn;
@@ -139,7 +139,7 @@ namespace DBADashGUI.CustomReports
                 {
                     DatabaseNameColumn = cboDatabaseNameCol.Text,
                     InstanceIDColumn = cboInstanceIDCol.Text,
-                    Tab = Enum.Parse<NavigateTreeLinkColumnInfo.Tabs>(cboTab.Text, true)
+                    Tab = Enum.Parse<Main.Tabs>(cboTab.Text, true)
                 };
             }
             else
