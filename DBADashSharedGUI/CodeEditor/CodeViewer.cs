@@ -1,7 +1,8 @@
-﻿using DBADashGUI.Theme;
+﻿using DBADashGUI.SchemaCompare;
+using DBADashGUI.Theme;
 using System;
+using System.ComponentModel;
 using System.Windows.Forms;
-using DBADashGUI.SchemaCompare;
 
 namespace DBADashGUI
 {
@@ -12,6 +13,7 @@ namespace DBADashGUI
             EditEnabled = false;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public CodeEditor.CodeEditorModes Language
         {
             get => Syntax;
