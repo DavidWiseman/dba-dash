@@ -79,26 +79,40 @@ jobs:
           $minioData = "C:\minio-data"
           New-Item -ItemType Directory -Path $minioData -Force | Out-Null
           
-          # Start MinIO server as background job with environment variables
-          $minioJob = Start-Job -ScriptBlock {
-            param($exePath, $dataPath, $rootUser, $rootPassword)
-            $env:MINIO_ROOT_USER = $rootUser
-            $env:MINIO_ROOT_PASSWORD = $rootPassword
-            & $exePath server $dataPath --console-address ":9001"
-          } -ArgumentList "$minioPath\minio.exe", $minioData, "minioadmin", "minioadmin"
+          # Create a batch file to start MinIO with environment variables
+          "@echo off" | Out-File -FilePath "$minioPath\start-minio.bat" -Encoding ASCII
+          "set MINIO_ROOT_USER=minioadmin" | Out-File -FilePath "$minioPath\start-minio.bat" -Encoding ASCII -Append
+          "set MINIO_ROOT_PASSWORD=minioadmin" | Out-File -FilePath "$minioPath\start-minio.bat" -Encoding ASCII -Append
+          'C:\minio\minio.exe server C:\minio-data --console-address ":9001"' | Out-File -FilePath "$minioPath\start-minio.bat" -Encoding ASCII -Append
           
-          Write-Output "MinIO job started with ID: $($minioJob.Id)"
+          # Start MinIO as a background process using Start-Process
+          $process = Start-Process -FilePath "$minioPath\start-minio.bat" -WindowStyle Hidden -PassThru
           
-          # Wait for MinIO to start
+          Write-Output "MinIO process started with PID: $($process.Id)"
+          
+          # Wait for MinIO to start and verify it's running
           Write-Output "Waiting for MinIO to start..."
-          Start-Sleep -Seconds 15
+          $maxAttempts = 30
+          $attempt = 0
+          $minioReady = $false
           
-          # Test if MinIO is responding
-          try {
-            $response = Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing -TimeoutSec 5
-            Write-Output "MinIO health check: $($response.StatusCode)"
-          } catch {
-            Write-Output "MinIO health check failed, but continuing..."
+          while ($attempt -lt $maxAttempts -and -not $minioReady) {
+            Start-Sleep -Seconds 2
+            try {
+              $response = Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+              if ($response.StatusCode -eq 200) {
+                $minioReady = $true
+                Write-Output "MinIO health check passed: $($response.StatusCode)"
+              }
+            } catch {
+              $attempt++
+              Write-Output "Waiting for MinIO... attempt $attempt of $maxAttempts"
+            }
+          }
+          
+          if (-not $minioReady) {
+            Write-Error "MinIO failed to start after $maxAttempts attempts"
+            exit 1
           }
           
           # Download MinIO client
