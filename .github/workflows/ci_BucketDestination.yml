@@ -137,16 +137,16 @@ jobs:
           # Test 1: Upload a test file
           "Test content from GitHub Actions" | Out-File -FilePath "C:\test-file.txt" -Encoding ASCII
           & "C:\minio\mc.exe" cp "C:\test-file.txt" local/dbadash-test/test-file.txt
-          Write-Output "✓ Test file uploaded successfully"
+          Write-Output "Test file uploaded successfully"
           
           # Test 2: List bucket contents
-          Write-Output "`nBucket contents:"
+          Write-Output "Bucket contents:"
           & "C:\minio\mc.exe" ls local/dbadash-test/
           
           # Test 3: Download the file
           & "C:\minio\mc.exe" cp local/dbadash-test/test-file.txt "C:\test-downloaded.txt"
           $content = Get-Content "C:\test-downloaded.txt"
-          Write-Output "✓ Downloaded file content: $content"
+          Write-Output "Downloaded file content: $content"
           
           # Test 4: Test with AWS SDK style access using credentials
           Write-Output "`nTesting AWS SDK compatibility..."
@@ -154,7 +154,7 @@ jobs:
           Write-Output "Access Key: minioadmin"
           Write-Output "Secret Key: minioadmin"
           
-          Write-Output "✓ All MinIO tests passed"
+          Write-Output "All MinIO tests passed"
 
       - name: Install SQL
         uses: potatoqualitee/mssqlsuite@v1.11
