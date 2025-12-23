@@ -79,23 +79,47 @@ jobs:
       - name: Start MinIO
         shell: powershell
         run: |
-          docker run -d `
-            --name minio `
-            -p 9000:9000 `
-            -p 9001:9001 `
-            -e MINIO_ROOT_USER=minioadmin `
-            -e MINIO_ROOT_PASSWORD=minioadmin `
-            --platform linux/amd64 `
-            minio/minio:latest server /data --console-address ":9001"
+          $ErrorActionPreference = "Stop"
           
+          # Download MinIO server
+          $minioPath = "C:\minio"
+          New-Item -ItemType Directory -Path $minioPath -Force | Out-Null
+          
+          Invoke-WebRequest -Uri "https://dl.min.io/server/minio/release/windows-amd64/minio.exe" -OutFile "$minioPath\minio.exe"
+          
+          # Create data directory
+          $minioData = "C:\minio-data"
+          New-Item -ItemType Directory -Path $minioData -Force | Out-Null
+          
+          # Start MinIO server as background job
+          $env:MINIO_ROOT_USER = "minioadmin"
+          $env:MINIO_ROOT_PASSWORD = "minioadmin"
+          
+          $minioJob = Start-Job -ScriptBlock {
+            param($exePath, $dataPath)
+            & $exePath server $dataPath --console-address ":9001"
+          } -ArgumentList "$minioPath\minio.exe", $minioData
+          
+          Write-Output "MinIO job started with ID: $($minioJob.Id)"
+          
+          # Wait for MinIO to start
           Write-Output "Waiting for MinIO to start..."
           Start-Sleep -Seconds 15
           
-          docker run --rm `
-            --platform linux/amd64 `
-            --add-host host.docker.internal:host-gateway `
-            -e MC_HOST_local=http://minioadmin:minioadmin@host.docker.internal:9000 `
-            minio/mc:latest mb local/dbadash-test
+          # Test if MinIO is responding
+          try {
+            $response = Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing -TimeoutSec 5
+            Write-Output "MinIO health check: $($response.StatusCode)"
+          } catch {
+            Write-Output "MinIO health check failed, but continuing..."
+          }
+          
+          # Download MinIO client
+          Invoke-WebRequest -Uri "https://dl.min.io/client/mc/release/windows-amd64/mc.exe" -OutFile "$minioPath\mc.exe"
+          
+          # Configure mc and create test bucket
+          & "$minioPath\mc.exe" alias set local http://localhost:9000 minioadmin minioadmin
+          & "$minioPath\mc.exe" mb local/dbadash-test
           
           Write-Output "MinIO is running on http://localhost:9000"
           Write-Output "Console available at http://localhost:9001"
