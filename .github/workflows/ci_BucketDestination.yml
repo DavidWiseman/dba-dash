@@ -154,7 +154,7 @@ jobs:
           Write-Output "Access Key: minioadmin"
           Write-Output "Secret Key: minioadmin"
           
-          Write-Output "`n✓ All MinIO tests passed"
+          Write-Output "✓ All MinIO tests passed"
 
       - name: Install SQL
         uses: potatoqualitee/mssqlsuite@v1.11
