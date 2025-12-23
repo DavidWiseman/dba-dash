@@ -86,59 +86,65 @@ namespace DBADash
             var cred = GetCredentials(profile, accessKey, secretKey);
 
             var endpointUri = new Uri(destination);
-            var s3Uri = new AmazonS3Uri(endpointUri);
-
             var host = endpointUri.Host;
             var s3Scheme = string.Equals(endpointUri.Scheme, "s3", StringComparison.OrdinalIgnoreCase);
             var isAwsHost = !string.IsNullOrEmpty(host) && host.EndsWith("amazonaws.com", StringComparison.OrdinalIgnoreCase);
-            var isS3SchemeBucketHost = s3Scheme && !string.IsNullOrEmpty(s3Uri.Bucket) && string.Equals(host, s3Uri.Bucket, StringComparison.Ordinal);
-
-            var isAws = isAwsHost || isS3SchemeBucketHost;
+            // If scheme is s3:// it's AWS-style; otherwise defer AmazonS3Uri parsing until confirmed AWS
+            var isAws = isAwsHost || s3Scheme;
 
             if (!isAws)
             {
-                // Try to infer auth region if host is like "s3.<region>.<provider>"
-                string? authRegionCandidate = null;
-                var parts = host.Split('.');
-                if (parts.Length >= 3 && parts[0].Equals("s3", StringComparison.OrdinalIgnoreCase))
-                {
-                    authRegionCandidate = parts[1]; // e.g., "us-west-2"
-                }
-
-                // Provider-specific override: Cloudflare R2 expects "auto"
-                if (host.EndsWith("r2.cloudflarestorage.com", StringComparison.OrdinalIgnoreCase))
-                {
-                    authRegionCandidate = "auto";
-                }
-
-                // Validate candidate region: letters/digits/dashes, length 2–32 (covers most providers)
-                static bool IsValidRegion(string r)
-                    => !string.IsNullOrWhiteSpace(r) && r.Length >= 2 && r.Length <= 32 && r.All(c => char.IsLetterOrDigit(c) || c == '-');
-
-                string authRegion;
-                if (!string.IsNullOrEmpty(authRegionCandidate) && IsValidRegion(authRegionCandidate))
-                {
-                    authRegion = authRegionCandidate;
-                }
-                else
-                {
-                    authRegion = RegionEndpoint.USEast1.SystemName;
-                    Log.Warning("Unrecognized or invalid auth region \"{authRegionCandidate}\" for host {host}. Defaulting to {region}.", authRegionCandidate, host, authRegion);
-                }
+                var authRegion = GetAuthRegionFromHost(host);
 
                 var cfg = new AmazonS3Config
                 {
                     ServiceURL = endpointUri.GetLeftPart(UriPartial.Authority),
                     ForcePathStyle = true,
                     UseHttp = string.Equals(endpointUri.Scheme, "http", StringComparison.OrdinalIgnoreCase),
-                    AuthenticationRegion = authRegion
+                    AuthenticationRegion = authRegion.SystemName
                 };
 
                 return new AmazonS3Client(cred, cfg);
             }
 
             // AWS path: reuse region-discovery + caching
+            var s3Uri = new AmazonS3Uri(endpointUri);
             return await GetAmazonAWSClientAsync(profile, accessKey, secretKey, s3Uri);
+        }
+
+        private static RegionEndpoint GetAuthRegionFromHost(string host)
+        {
+            RegionCache.TryGetValue(host, out var authRegion);
+            if (authRegion != null)
+                return authRegion;
+            string? authRegionCandidate = null;
+            var parts = host.Split('.');
+            if (parts.Length >= 3 && parts[0].Equals("s3", StringComparison.OrdinalIgnoreCase))
+            {
+                authRegionCandidate = parts[1]; // e.g., "us-west-2"
+            }
+
+            // Provider-specific override: Cloudflare R2 expects "auto"
+            if (host.EndsWith("r2.cloudflarestorage.com", StringComparison.OrdinalIgnoreCase))
+            {
+                authRegionCandidate = "auto";
+            }
+
+            // Validate candidate region: letters/digits/dashes, length 2–32 (covers most providers)
+            static bool IsValidRegion(string r)
+                => !string.IsNullOrWhiteSpace(r) && r.Length >= 2 && r.Length <= 32 && r.All(c => char.IsLetterOrDigit(c) || c == '-');
+
+            if (!string.IsNullOrEmpty(authRegionCandidate) && IsValidRegion(authRegionCandidate))
+            {
+                authRegion = RegionEndpoint.GetBySystemName(authRegionCandidate);
+            }
+            else
+            {
+                authRegion = RegionEndpoint.USEast1;
+                Log.Warning("Unrecognized or invalid auth region \"{authRegionCandidate}\" for host {host}. Defaulting to {region}.", authRegionCandidate, host, authRegion);
+            }
+            RegionCache.TryAdd(host, authRegion);
+            return authRegion;
         }
 
         public static AmazonSQSClient GetSQSClient(string profile, string accessKey, string secretKey, string queueUrl)
