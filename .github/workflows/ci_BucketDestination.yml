@@ -85,15 +85,17 @@ jobs:
             -p 9001:9001 `
             -e MINIO_ROOT_USER=minioadmin `
             -e MINIO_ROOT_PASSWORD=minioadmin `
-            minio/minio server /data --console-address ":9001"
+            --platform linux/amd64 `
+            minio/minio:latest server /data --console-address ":9001"
           
           Write-Output "Waiting for MinIO to start..."
-          Start-Sleep -Seconds 10
+          Start-Sleep -Seconds 15
           
-          # Create test bucket using MinIO client in container
-          docker run --rm --network host `
-            -e MC_HOST_local=http://minioadmin:minioadmin@localhost:9000 `
-            minio/mc mb local/dbadash-test
+          docker run --rm `
+            --platform linux/amd64 `
+            --add-host host.docker.internal:host-gateway `
+            -e MC_HOST_local=http://minioadmin:minioadmin@host.docker.internal:9000 `
+            minio/mc:latest mb local/dbadash-test
           
           Write-Output "MinIO is running on http://localhost:9000"
           Write-Output "Console available at http://localhost:9001"
