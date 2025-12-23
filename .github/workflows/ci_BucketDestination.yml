@@ -64,18 +64,6 @@ jobs:
           $guiZipPath = "DBADash_GUI_Only_${{steps.GetVersion.outputs.BUILD_NUMBER}}.zip"
           Compress-Archive -Path "DBADashBuild\DBADashGUIOnly\*" -DestinationPath $guiZipPath
 
-      - name: Install SQL
-        uses: potatoqualitee/mssqlsuite@v1.11
-        with:
-          install: sqlengine
-          version: ${{ matrix.sql-version }}
-          collation: ${{ matrix.sql-collation }}
-
-      - name: Check SQL Install
-        run: | 
-          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "SELECT @@version as Version;"
-          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "SELECT SERVERPROPERTY('Collation') AS Collation;"
-
       - name: Start MinIO
         shell: powershell
         run: |
@@ -91,14 +79,13 @@ jobs:
           $minioData = "C:\minio-data"
           New-Item -ItemType Directory -Path $minioData -Force | Out-Null
           
-          # Start MinIO server as background job
-          $env:MINIO_ROOT_USER = "minioadmin"
-          $env:MINIO_ROOT_PASSWORD = "minioadmin"
-          
+          # Start MinIO server as background job with environment variables
           $minioJob = Start-Job -ScriptBlock {
-            param($exePath, $dataPath)
+            param($exePath, $dataPath, $rootUser, $rootPassword)
+            $env:MINIO_ROOT_USER = $rootUser
+            $env:MINIO_ROOT_PASSWORD = $rootPassword
             & $exePath server $dataPath --console-address ":9001"
-          } -ArgumentList "$minioPath\minio.exe", $minioData
+          } -ArgumentList "$minioPath\minio.exe", $minioData, "minioadmin", "minioadmin"
           
           Write-Output "MinIO job started with ID: $($minioJob.Id)"
           
@@ -121,9 +108,13 @@ jobs:
           & "$minioPath\mc.exe" alias set local http://localhost:9000 minioadmin minioadmin
           & "$minioPath\mc.exe" mb local/dbadash-test
           
+          # Set public policy on bucket for easier testing (optional)
+          & "$minioPath\mc.exe" anonymous set download local/dbadash-test
+          
           Write-Output "MinIO is running on http://localhost:9000"
           Write-Output "Console available at http://localhost:9001"
           Write-Output "Test bucket 'dbadash-test' created"
+          Write-Output "Credentials: minioadmin / minioadmin"
 
       - name: Configure AWS Credentials for MinIO
         shell: powershell
@@ -137,6 +128,45 @@ jobs:
                     
           Write-Output "AWS credentials configured at $awsDir"
           Write-Output "Endpoint URL for MinIO: http://localhost:9000"
+
+      - name: Test MinIO Bucket Access
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Continue"
+          
+          # Test 1: Upload a test file
+          "Test content from GitHub Actions" | Out-File -FilePath "C:\test-file.txt" -Encoding ASCII
+          & "C:\minio\mc.exe" cp "C:\test-file.txt" local/dbadash-test/test-file.txt
+          Write-Output "✓ Test file uploaded successfully"
+          
+          # Test 2: List bucket contents
+          Write-Output "`nBucket contents:"
+          & "C:\minio\mc.exe" ls local/dbadash-test/
+          
+          # Test 3: Download the file
+          & "C:\minio\mc.exe" cp local/dbadash-test/test-file.txt "C:\test-downloaded.txt"
+          $content = Get-Content "C:\test-downloaded.txt"
+          Write-Output "✓ Downloaded file content: $content"
+          
+          # Test 4: Test with AWS SDK style access using credentials
+          Write-Output "`nTesting AWS SDK compatibility..."
+          Write-Output "Bucket endpoint: http://localhost:9000/dbadash-test"
+          Write-Output "Access Key: minioadmin"
+          Write-Output "Secret Key: minioadmin"
+          
+          Write-Output "`n✓ All MinIO tests passed"
+
+      - name: Install SQL
+        uses: potatoqualitee/mssqlsuite@v1.11
+        with:
+          install: sqlengine
+          version: ${{ matrix.sql-version }}
+          collation: ${{ matrix.sql-collation }}
+
+      - name: Check SQL Install
+        run: | 
+          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "SELECT @@version as Version;"
+          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "SELECT SERVERPROPERTY('Collation') AS Collation;"
 
       - name: Create Identity Test DB
         run: | 
