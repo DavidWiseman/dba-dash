@@ -201,7 +201,7 @@ jobs:
 
           Set-Location $InstallPath
           ./dbadashconfig -a SetServiceName --ServiceName $ServiceName
-          ./dbadashconfig -c "http://localhost:9000/dbadash-test" -a Add
+          ./dbadashconfig -c "http://localhost:9000/dbadash-test/dbadash" -a Add
           ./dbadashconfig -c "Data Source=localhost;UID=sa;pwd=dbatools.I0;Initial Catalog=DBADashDB_FromBucket;Encrypt=True;TrustServerCertificate=True;" -a SetDestination
           ./dbadashconfig -a SetAWS --AWSAccessKey minioadmin --AWSSecretKey minioadmin
           "Install Service"
@@ -235,7 +235,7 @@ jobs:
           "Configure"
           ./dbadashconfig -a SetServiceName --ServiceName $ServiceName
           ./dbadashconfig -c "Data Source=localhost;UID=sa;pwd=dbatools.I0;Initial Catalog=DBADashDB_Direct;Encrypt=True;TrustServerCertificate=True;" -a AddDestination
-          ./dbadashconfig -c "http://localhost:9000/dbadash-test" -a AddDestination
+          ./dbadashconfig -c "http://localhost:9000/dbadash-test/dbadash" -a AddDestination
           ./dbadashconfig -c "Data Source=localhost;UID=sa;pwd=dbatools.I0;Encrypt=True;TrustServerCertificate=True;" -a Add --PlanCollectionEnabled --SlowQueryThresholdMs 1000 --SchemaSnapshotDBs "*"
           ./dbadashconfig -a SetAWS --AWSAccessKey minioadmin --AWSSecretKey minioadmin
           "Install Service"
