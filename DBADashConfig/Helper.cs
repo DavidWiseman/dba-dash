@@ -414,7 +414,7 @@ namespace DBADashConfig
                     Log.Error("AWSSecretKey is required when setting AWSAccessKey");
                     Environment.Exit(1);
                 }
-                else if (string.IsNullOrEmpty(o.AWSProfile))
+                else if (!string.IsNullOrEmpty(o.AWSProfile))
                 {
                     Log.Error("Please set either using --AWSProfile or both --AWSAccessKey and --AWSSecretKey");
                     Environment.Exit(1);

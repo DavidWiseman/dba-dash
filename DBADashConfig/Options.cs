@@ -153,7 +153,8 @@ SetAWS - Set AWS Credentials")]
             Delete,
             Restore,
             PopulateConnectionID,
-            PopulateConnectionID2
+            PopulateConnectionID2,
+            SetAWS
         }
     }
 }
