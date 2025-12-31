@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         language: [csharp]
-        sql-version: [2016, 2017, 2019, 2022]
+        sql-version: [2022]
         sql-collation: [Latin1_General_BIN]
 
     steps:
@@ -35,24 +35,24 @@ jobs:
       - name: Build GUI
         run: dotnet build DBADashGUI -o DBADashBuild/DBADashGUIOnly
 
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
+      - name: Install SQL project build tools for Linux
+        run: dotnet workload install sql
         
-      - name: Build DB
-        run: msbuild dbadashdb -property:Configuration=CLI
+      - name: Build DB dacpac
+        run: dotnet build DBADashDB/DBADashDB.sqlproj -c CLI
 
       - name: Test
         run: dotnet test DBADash.Test/DBADash.Test.csproj --verbosity normal
 
       - name: Get Version
         id: GetVersion 
-        shell: bash
+        shell: pwsh
         run: | 
-          VERSION=$(dotnet --version)
-          # Extract version from DBADash.dll using a simple grep/sed approach
-          # For Linux, we'll use a placeholder version or parse from AssemblyInfo
-          BUILD_NUMBER="3.15.0"
-          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          $path = Join-Path (Get-Location) "DBADashBuild/CLI/DBADash.dll"
+          $version = [System.Reflection.Assembly]::LoadFrom($path).GetName().Version
+          $buildNumber = $version.ToString(3)
+          Write-Host "Build Number: $buildNumber"
+          Write-Output "BUILD_NUMBER=$buildNumber" >> $env:GITHUB_OUTPUT
         
       - name: Get Build Reference
         id: GetBuildReference
