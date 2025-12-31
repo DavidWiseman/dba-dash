@@ -1,4 +1,4 @@
-name: DBA Dash CI
+name: DBA Dash Linux CI
 
 on: 
     push:
@@ -35,8 +35,8 @@ jobs:
       - name: Build GUI
         run: dotnet build DBADashGUI -o DBADashBuild/DBADashGUIOnly -p:EnableWindowsTargeting=true
 
-      - name: Install SQL project build tools for Linux
-        run: dotnet workload install sql
+      - name: Install Microsoft.Build.Sql.Templates
+        run: dotnet new install Microsoft.Build.Sql.Templates
         
       - name: Build DB dacpac
         run: dotnet build DBADashDB/DBADashDB.sqlproj -c CLI -p:EnableWindowsTargeting=true
