@@ -30,7 +30,7 @@ jobs:
         run: dotnet --list-sdks
 
       - name: Build
-        run: dotnet build -c CLI
+        run: dotnet build -c CLI -p:EnableWindowsTargeting=true
 
       - name: Build GUI
         run: dotnet build DBADashGUI -o DBADashBuild/DBADashGUIOnly
@@ -39,7 +39,7 @@ jobs:
         run: dotnet workload install sql
         
       - name: Build DB dacpac
-        run: dotnet build DBADashDB/DBADashDB.sqlproj -c CLI
+        run: dotnet build DBADashDB/DBADashDB.sqlproj -c CLI -p:EnableWindowsTargeting=true
 
       - name: Test
         run: dotnet test DBADash.Test/DBADash.Test.csproj --verbosity normal
