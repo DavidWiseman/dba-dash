@@ -75,7 +75,15 @@ namespace DBADashService
             // Configure the ShutdownTimeout to infinite
             builder.Services.Configure<HostOptions>(options =>
                 options.ShutdownTimeout = Timeout.InfiniteTimeSpan);
-            builder.Services.AddWindowsService(options => { options.ServiceName = cfg.ServiceName; });
+            if (OperatingSystem.IsWindows())
+            {
+                builder.Services.AddWindowsService(options => { options.ServiceName = cfg.ServiceName; });
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                // Integrate with systemd when running on Linux
+                builder.Services.AddSystemd();
+            }
             builder.Services.AddHostedService<ScheduleService>();
 
             var host = builder.Build();

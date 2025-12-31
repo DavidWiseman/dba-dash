@@ -1,0 +1,148 @@
+name: DBA Dash CI
+
+on: 
+    push:
+    workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Test (SQL ${{ matrix.sql-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [csharp]
+        sql-version: [2016, 2017, 2019, 2022]
+        sql-collation: [Latin1_General_BIN]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: 'ga'
+      
+      - name: Check SDK version
+        run: dotnet --list-sdks
+
+      - name: Build
+        run: dotnet build -c CLI
+
+      - name: Build GUI
+        run: dotnet build DBADashGUI -o DBADashBuild/DBADashGUIOnly
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        
+      - name: Build DB
+        run: msbuild dbadashdb -property:Configuration=CLI
+
+      - name: Test
+        run: dotnet test DBADash.Test/DBADash.Test.csproj --verbosity normal
+
+      - name: Get Version
+        id: GetVersion 
+        shell: bash
+        run: | 
+          VERSION=$(dotnet --version)
+          # Extract version from DBADash.dll using a simple grep/sed approach
+          # For Linux, we'll use a placeholder version or parse from AssemblyInfo
+          BUILD_NUMBER="3.15.0"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        
+      - name: Get Build Reference
+        id: GetBuildReference
+        shell: bash
+        run: | 
+              curl -o DBADashBuild/CLI/BuildReference.json 'https://dataplat.dbatools.io/assets/dbatools-buildref-index.json'
+
+      - name: Zip
+        shell: bash
+        run: | 
+          cd DBADashBuild/CLI
+          zip -r "../../DBADash_${{steps.GetVersion.outputs.BUILD_NUMBER}}.zip" .
+          cd ../DBADashGUIOnly
+          zip -r "../../DBADash_GUI_Only_${{steps.GetVersion.outputs.BUILD_NUMBER}}.zip" .
+
+      - name: Install SQL Server ${{ matrix.sql-version }}
+        uses: potatoqualitee/mssqlsuite@v1.11
+        with:
+          install: sqlengine
+          version: ${{ matrix.sql-version }}
+          collation: ${{ matrix.sql-collation }}
+
+      - name: Check SQL Install
+        run: | 
+          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "SELECT @@version as Version;"
+          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "SELECT SERVERPROPERTY('Collation') AS Collation;"
+
+      - name: Create Identity Test DB
+        run: | 
+          sqlcmd -S localhost -U sa -P dbatools.I0 -d tempdb -Q "CREATE DATABASE TestIdentity"
+          sqlcmd -S localhost -U sa -P dbatools.I0 -d TestIdentity -Q "CREATE TABLE dbo.IdentityTest(ID TINYINT IDENTITY(1,1));DECLARE @i INT=1; WHILE @i <250 BEGIN INSERT INTO dbo.IdentityTest  DEFAULT VALUES; SET @i+=1; END"
+
+      - name: Configure & Run DBA Dash
+        shell: bash
+        run: | 
+          set -e
+          zipPath="DBADash_${{steps.GetVersion.outputs.BUILD_NUMBER}}.zip"
+          InstallPath="$HOME/DBADashTest"
+          echo "Extract to $InstallPath"
+          mkdir -p $InstallPath
+          unzip -q $zipPath -d $InstallPath
+          cd $InstallPath
+          chmod +x dbadashconfig DBADashService
+          echo "Configure"
+          ./dbadashconfig -c "Data Source=localhost;UID=sa;pwd=dbatools.I0;Initial Catalog=DBADashDB_GitHubAction;Encrypt=True;TrustServerCertificate=True;" -a SetDestination
+          ./dbadashconfig -c "Data Source=localhost;UID=sa;pwd=dbatools.I0;Encrypt=True;TrustServerCertificate=True;" -a Add --PlanCollectionEnabled --SlowQueryThresholdMs 1000 --SchemaSnapshotDBs "*"
+          echo "Run DBA Dash in background"
+          ./DBADashService &
+          DBADASH_PID=$!
+          echo "Wait 60 sec"
+          sleep 60
+
+          echo "Get Logs"
+          logsFolder="$InstallPath/Logs"
+          if [ -d "$logsFolder" ]; then
+            cat $logsFolder/*
+          fi
+
+      - name: Wait 5min
+        shell: bash
+        run: | 
+          echo "Wait 5min"
+          sleep 300
+      - name: Stop DBA Dash
+        shell: bash
+        run: |
+          pkill -f DBADashService || true
+      - name: Output CollectionErrorLog
+        shell: bash
+        run: | 
+          /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'dbatools.I0' -d DBADashDB_GitHubAction -Q "SELECT * FROM dbo.CollectionErrorLog" -C
+
+      - name: Output Table Counts
+        shell: bash
+        run: | 
+          pwsh ./Scripts/Get-TableCounts.ps1 -ServerInstance "LOCALHOST" -Database "DBADashDB_GitHubAction" 
+
+      - name: Run Pester Tests
+        shell: pwsh
+        run: |     
+          Install-Module Pester -Force -SkipPublisherCheck
+          Import-Module Pester -PassThru
+          Invoke-Pester -Output Detailed Scripts/CI_Workflow.Tests.ps1
+
+      - name: Output Table Counts Following Delete
+        shell: bash
+        run: | 
+            pwsh ./Scripts/Get-TableCounts.ps1 -ServerInstance "LOCALHOST" -Database "DBADashDB_GitHubAction" 
+
+      - name: Output Log and Check for Errors
+        shell: bash
+        run: | 
+          pwsh ./Scripts/Get-LogContent.ps1 -LogPath  "$HOME/DBADashTest/Logs" -ThrowError
