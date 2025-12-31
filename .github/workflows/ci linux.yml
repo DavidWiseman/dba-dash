@@ -33,7 +33,7 @@ jobs:
         run: dotnet build -c CLI -p:EnableWindowsTargeting=true
 
       - name: Build GUI
-        run: dotnet build DBADashGUI -o DBADashBuild/DBADashGUIOnly
+        run: dotnet build DBADashGUI -o DBADashBuild/DBADashGUIOnly -p:EnableWindowsTargeting=true
 
       - name: Install SQL project build tools for Linux
         run: dotnet workload install sql
