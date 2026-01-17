@@ -1115,7 +1115,7 @@ OPTION(RECOMPILE)"); // Plan caching is not beneficial.  RECOMPILE hint to avoid
         private async Task CollectRunningQueriesAsync()
         {
             await using var cn = new SqlConnection(ConnectionString);
-            await using var cmd = new SqlCommand(SqlStrings.RunningQueries, cn);
+            await using var cmd = new SqlCommand(SqlStrings.RunningQueries, cn) { CommandTimeout = CollectionType.RunningQueries.GetCommandTimeout() };
             using var da = new SqlDataAdapter(cmd);
             cmd.Parameters.AddWithValue("CollectSessionWaits", Source.CollectSessionWaits);
             cmd.Parameters.AddWithValue("CollectTranBeginTime", Source.CollectTranBeginTime);

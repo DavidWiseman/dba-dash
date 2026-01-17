@@ -34,10 +34,13 @@ namespace DBADash
         public int? PurgeDataCommandTimeout { get; set; }
         public int? AddPartitionsCommandTimeout { get; set; }
 
+        public bool? UseQueueBasedScheduling { get; set; }
+
         public const int DefaultImportCommandTimeout = 60;
         public const int DefaultPurgeDataCommandTimeout = 1200;
         public const int DefaultAddPartitionsCommandTimeout = 300;
         public const int DefaultFailedLoginsBackfillMinutes = 1440;
+        private const bool DefaultUseQueueBasedScheduling = true;
 
         public bool EnableMessaging { get; set; } = true;
 
@@ -63,7 +66,9 @@ namespace DBADash
 
         public const int DefaultAlertProcessingStartupDelaySeconds = 60;
 
-        public HashSet<InstanceMetadataProviders.Providers>EnabledMetadataProviders { get; set; } = new();
+        public HashSet<InstanceMetadataProviders.Providers> EnabledMetadataProviders { get; set; } = new();
+
+        public bool IsUseQueueBasedScheduling() => UseQueueBasedScheduling ?? DefaultUseQueueBasedScheduling;
 
         public int GetThreadCount()
         {
@@ -90,7 +95,7 @@ namespace DBADash
                 "Based on {ConnectionCount} connections ({ConnectionThreads} threads) " +
                 "and {ProcessorCount} processors ({ProcessorLimit} max threads). " +
                 "Clamped between {MinThreads}-{MaxThreads}",
-                threads, connectionCount, connectionThreadCalc , processorCount, processorLimit, minimumCalcThreads, maximumCalcThreads);
+                threads, connectionCount, connectionThreadCalc, processorCount, processorLimit, minimumCalcThreads, maximumCalcThreads);
             return threads;
         }
 
