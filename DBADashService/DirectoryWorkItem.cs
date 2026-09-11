@@ -15,6 +15,7 @@ namespace DBADashService
     {
         private static readonly AsyncKeyedLocker<string> _folderLocker = new();
         private const uint ERROR_SHARING_VIOLATION = 0x80070020;
+        private static readonly TimeSpan StaleTempFileAge = TimeSpan.FromHours(1);
 
         public DBADashSource Source { get; set; }
 
@@ -39,18 +40,19 @@ namespace DBADashService
             // One job per folder at a time
             using (await _folderLocker.LockAsync(Source.ConnectionString).ConfigureAwait(false))
             {
-                List<string> files;
+                List<string> allFiles;
                 try
                 {
-                    files = Directory.EnumerateFiles(folder, DestinationHandling.FileSearchPattern, SearchOption.TopDirectoryOnly)
-                                     .Where(f => f.EndsWith(DestinationHandling.FileExtension))
-                                     .ToList();
+                    allFiles = Directory.EnumerateFiles(folder, DestinationHandling.FileSearchPattern, SearchOption.TopDirectoryOnly)
+                                        .ToList();
                 }
                 catch (Exception ex)
                 {
                     Log.Error(ex, "Enumerate files {folder}", folder);
                     return;
                 }
+                DeleteStaleTempFiles(allFiles);
+                var files = allFiles.Where(f => f.EndsWith(DestinationHandling.FileExtension)).ToList();
 
                 var filesByInstance = GetFilesToProcessByInstance(files);
                 var tasks = filesByInstance.Select(kv => ProcessInstanceFilesAsync(kv.Value, Source, config, cancellationToken)).ToList();
@@ -67,12 +69,21 @@ namespace DBADashService
             foreach (var f in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await ProcessFileAsync(f, source, config);
-                TryDeleteFile(f);
+                if (await ProcessFileAsync(f, source, config))
+                {
+                    TryDeleteFile(f);
+                }
             }
         }
 
-        private static async Task ProcessFileAsync(string f, DBADashSource source, CollectionConfig config, int tryCount = 1)
+        /// <summary>
+        /// Import a single file.  Returns true if the file has been dealt with and can be removed from the
+        /// source folder, or false if it should be left in place and retried on the next iteration.
+        /// A file that can't be imported is moved to the failed message folder rather than being left in
+        /// place - files are processed in order, so leaving it would block every file behind it for this
+        /// instance indefinitely.
+        /// </summary>
+        private static async Task<bool> ProcessFileAsync(string f, DBADashSource source, CollectionConfig config, int tryCount = 1)
         {
             const int MaxTryCount = 5;
             const int RetryDelay = 10;
@@ -86,22 +97,28 @@ namespace DBADashService
                 {
                     await DestinationHandling.WriteAllDestinationsAsync(ds, source, fileName, config);
                 }
+                return true;
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) // Deleted after the folder was listed.  e.g. Another service importing from the same folder.
+            {
+                Log.Information("File {FileName} no longer exists.  Skipping", fileName);
+                return false;
             }
             catch (IOException ex) when ((uint)ex.HResult == ERROR_SHARING_VIOLATION) // Another process has a lock on the file.  It might still be being written to.
             {
                 if (tryCount > MaxTryCount)
                 {
                     Log.Warning("File {FileName} is in use.  Exceeded max wait/retry.  File will be processed on the next iteration", fileName);
-                    return;
+                    return false; // Leave the file in place.  It hasn't been imported.
                 }
                 Log.Information("File {FileName} is in use.  Waiting for lock to release. Attempt {TryCount}/{MaxRetryCount}", fileName, tryCount, MaxTryCount);
                 await Task.Delay(RetryDelay);
-                await ProcessFileAsync(f, source, config, tryCount + 1);
+                return await ProcessFileAsync(f, source, config, tryCount + 1);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error importing from {filename}.  File will be copied to {failedMessageFolder}", fileName, SchedulerServiceConfig.FailedMessageFolder);
-                File.Copy(f, Path.Combine(SchedulerServiceConfig.FailedMessageFolder, f));
+                Log.Error(ex, "Error importing from {filename}.  File will be moved to {failedMessageFolder}", fileName, SchedulerServiceConfig.FailedMessageFolder);
+                return TryMoveToFailedMessageFolder(f);
             }
         }
 
@@ -154,6 +171,55 @@ namespace DBADashService
                 }
             }
             return filesToProcessByInstance;
+        }
+
+        /// <summary>
+        /// Move a file that couldn't be imported to the failed message folder so it doesn't block the files
+        /// queued behind it.  Files are removed from that folder after 7 days (SchedulerService.FolderCleanup).
+        /// Returns true if the file has been dealt with, false if it has to be left where it is.
+        /// </summary>
+        private static bool TryMoveToFailedMessageFolder(string filePath)
+        {
+            var fileName = Path.GetFileName(filePath);
+            try
+            {
+                if (string.IsNullOrEmpty(SchedulerServiceConfig.FailedMessageFolder))
+                {
+                    throw new Exception("Failed message folder is not available");
+                }
+                // Note: Path.GetFileName is required here.  filePath is rooted and Path.Combine returns a rooted
+                // second argument unchanged, which would make this a move of the file over itself.
+                File.Move(filePath, Path.Combine(SchedulerServiceConfig.FailedMessageFolder, fileName), true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error moving {FileName} to failed message folder {failedMessageFolder}.  The file will be left in place", fileName, SchedulerServiceConfig.FailedMessageFolder);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Temp files are renamed to .xml once the write completes (see DestinationHandling.WriteFolderAsync).
+        /// A service killed mid-write leaves one behind that will never be renamed, so remove it once it's old
+        /// enough that it can't still be in the process of being written.
+        /// </summary>
+        private static void DeleteStaleTempFiles(IEnumerable<string> files)
+        {
+            try
+            {
+                var cutOff = DateTime.UtcNow.Subtract(StaleTempFileAge);
+                foreach (var f in files.Where(f => f.EndsWith(DestinationHandling.TempFileExtension)
+                                                   && File.GetLastWriteTimeUtc(f) < cutOff))
+                {
+                    Log.Warning("Deleting incomplete file {FileName}", Path.GetFileName(f));
+                    TryDeleteFile(f);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error deleting incomplete files");
+            }
         }
 
         private static void TryDeleteFile(string filePath)
