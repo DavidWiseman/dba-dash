@@ -17,6 +17,10 @@ namespace DBADash
     {
         public const string FileNamePrefix = "DBADash_";
         public const string FileExtension = ".xml";
+
+        /// <summary>Extension used while a file is being written to a folder destination.  Renamed to <see cref="FileExtension"/> once the write completes.</summary>
+        public const string TempFileExtension = ".tmp";
+
         public const string FileSearchPattern = FileNamePrefix + "*";
 
         private static readonly ResiliencePipeline pipeline = new ResiliencePipelineBuilder()
@@ -157,11 +161,27 @@ namespace DBADash
             {
                 var filePath = Path.Combine(destination, fileName);
                 var extension = Path.GetExtension(fileName);
-                if (extension == ".xml")
+                if (extension == FileExtension)
                 {
-                    await using FileStream fs = new(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                    // Write to a temp file and rename it once the write is complete.  The service importing
+                    // from this folder ignores anything that doesn't have the .xml extension, so it can't read
+                    // a partially written file, and a service killed mid-write leaves an inert temp file behind
+                    // instead of a truncated .xml file that could never be imported.
+                    var tempPath = filePath + TempFileExtension;
                     DataSetSerialization.SetDateTimeKind(ds); // Required to prevent timezone conversion
-                    await Task.Run(() => ds.WriteXml(fs, XmlWriteMode.WriteSchema));
+                    try
+                    {
+                        await using (FileStream fs = new(tempPath, FileMode.Create, FileAccess.Write))
+                        {
+                            await Task.Run(() => ds.WriteXml(fs, XmlWriteMode.WriteSchema));
+                        }
+                        File.Move(tempPath, filePath, true);
+                    }
+                    catch
+                    {
+                        TryDeleteTempFile(tempPath);
+                        throw;
+                    }
                 }
                 else
                 {
@@ -171,6 +191,22 @@ namespace DBADash
             else
             {
                 Log.Error("Destination Folder doesn't exist {folder}", destination);
+            }
+        }
+
+        /// <summary>
+        /// Remove a temp file left behind by a failed write.  Failure to delete it isn't an error worth
+        /// propagating - the service importing from the folder cleans up any temp file that gets left behind.
+        /// </summary>
+        private static void TryDeleteTempFile(string tempPath)
+        {
+            try
+            {
+                File.Delete(tempPath);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Error deleting temp file {tempPath}", tempPath);
             }
         }
 

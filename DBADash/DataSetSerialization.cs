@@ -22,7 +22,10 @@ namespace DBADash
         
         public static DataSet DeserializeFromXmlFile(string filePath)
         {
-            using FileStream fs = new(filePath, FileMode.OpenOrCreate, FileAccess.Read);
+            // FileMode.Open (not OpenOrCreate).  A file that was deleted between being listed and read here
+            // must throw FileNotFoundException so the caller can skip it.  Creating the file instead leaves a
+            // zero byte file behind that can never be imported ("Root element is missing").
+            using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read);
             var ds = new DataSet();
             ds.ReadXml(fs);
             return ds;
