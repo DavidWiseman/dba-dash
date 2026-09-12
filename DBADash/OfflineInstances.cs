@@ -83,6 +83,16 @@ namespace DBADashService
 
         private const int DelayBetweenChecks = 10;
 
+        /// <summary>
+        /// How long before a report that didn't reach every destination is repeated, in seconds.  Used in
+        /// place of the configured interval, which can be 0 for no repeat at all.
+        /// </summary>
+        private const int FailedReportRetryInterval = 60;
+
+        private static string lastReportedState;
+        private static DateTime lastReportDate = DateTime.MinValue;
+        private static bool lastReportFailed;
+
         public static async Task ManageOfflineInstances(CollectionConfig config, CancellationToken stoppingToken)
         {
             var lastCheck = DateTime.MinValue;
@@ -103,7 +113,7 @@ namespace DBADashService
                 }
                 try
                 {
-                    await LogOfflineInstances(config, lastCheck);
+                    await LogOfflineInstancesIfRequired(config);
                 }
                 catch (Exception ex)
                 {
@@ -172,6 +182,63 @@ namespace DBADashService
             var fileName = DBADashSource.GenerateFileName("OfflineInstances");
             await DestinationHandling.WriteAllDestinationsAsync(offlineInstances, fileName, config);
         }
+
+        /// <summary>
+        /// Identifies the current set of offline instances by the ConnectionID and FirstFail of each open
+        /// incident.  LastFail and FailCount are deliberately excluded as they change on every check, which
+        /// would make every state look like a new one.  Instances without a ConnectionID are excluded to
+        /// match what's actually reported - see <see cref="GetOfflineDataSet"/>.
+        /// </summary>
+        private static string GetCurrentState() =>
+            string.Join('|', Instances.Values
+                .Where(instance => !string.IsNullOrEmpty(instance.Source.ConnectionID))
+                .Select(instance => instance.Source.ConnectionID + "@" + instance.FirstFail.Ticks)
+                .OrderBy(key => key, StringComparer.Ordinal));
+
+        /// <summary>
+        /// Report the offline instances if the set of them has changed since the last report, or if the
+        /// report interval has elapsed.  The repository opens and closes offline incidents based on these
+        /// reports, so a change is always reported immediately - the repeat exists to recover the state if a
+        /// report is lost and to keep LastFail/FailCount current.  Repeating an unchanged state on a short
+        /// interval gains nothing at any destination, and on a folder/S3 destination it leaves a file behind
+        /// each time, which piles up if the service importing them falls behind (#2042).
+        /// </summary>
+        private static async Task LogOfflineInstancesIfRequired(CollectionConfig config)
+        {
+            var state = GetCurrentState();
+            // Note: SnapshotDateUTC, so UtcNow rather than the local time used to schedule the checks.
+            var now = DateTime.UtcNow;
+            // A report that threw is repeated on its own interval rather than on the next check.  A write to
+            // several destinations can succeed on some and fail on one, so repeating it every 10 seconds would
+            // leave a file behind at every healthy folder/S3 destination each time, which is the backlog this
+            // is meant to avoid (#2042).
+            var interval = lastReportFailed ? FailedReportRetryInterval : config.OfflineInstancesReportInterval;
+            if (!IsReportRequired(state, lastReportedState, lastReportDate, now, interval)) return;
+
+            var reported = false;
+            try
+            {
+                await LogOfflineInstances(config, now);
+                reported = true;
+            }
+            finally
+            {
+                // Recorded even when the report threw, so that the retry is driven by the interval above
+                // rather than by the state looking new on every check.  A further change to the set of
+                // offline instances is still reported straight away.
+                lastReportedState = state;
+                lastReportDate = now;
+                lastReportFailed = !reported;
+            }
+        }
+
+        /// <summary>
+        /// A change to the set of offline instances is always reported.  An unchanged state is reported again
+        /// once <paramref name="reportInterval"/> seconds have elapsed, or not at all if it's 0.
+        /// </summary>
+        internal static bool IsReportRequired(string currentState, string previousState, DateTime previousReportDate, DateTime now, int reportInterval) =>
+            currentState != previousState ||
+            (reportInterval > 0 && now >= previousReportDate.AddSeconds(reportInterval));
 
         private static async Task CheckConnectionsAsync(CancellationToken stoppingToken)
         {
