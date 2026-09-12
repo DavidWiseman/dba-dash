@@ -46,6 +46,18 @@ namespace DBADash
         /// </summary>
         private const int ReadReplicaScanParallelism = 8;
 
+        /// <summary>
+        /// How often (seconds) the set of offline instances is reported when nothing has changed.  A change -
+        /// an instance going offline, coming back, or failing again after it recovered - is always reported
+        /// immediately, so this only controls the repeat.  The repeat is what recovers the state if a report
+        /// is lost, and what keeps LastFail/FailCount current for an instance that's still offline, so those
+        /// values lag by up to this interval.  Every destination is reported to: a SQL destination runs
+        /// OfflineInstances_Add, a folder or S3 destination gets a file for the importing service to process.
+        /// 0 = report changes only (not recommended - a lost report would leave an instance marked offline
+        /// until it's reported again).
+        /// </summary>
+        public int OfflineInstancesReportInterval { get; set; } = 60;
+
         public string ServiceName { get; set; } = "DBADashService";
 
         public bool AutoUpdateDatabase { get; set; } = true;
