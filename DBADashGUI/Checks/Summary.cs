@@ -317,6 +317,13 @@ namespace DBADashGUI
                     isFocusedRow = true;
                     statusColumns["JobStatus"] = true;
                 }
+                // A paused instance's collections report N/A, which would hide the column showing the pause (and the row in
+                // the focused view) - but a pause is something to notice, so always show it
+                if (row.Table.Columns.Contains("CollectionsPausedUntil") && row["CollectionsPausedUntil"] != DBNull.Value)
+                {
+                    isFocusedRow = true;
+                    statusColumns["SnapshotAgeStatus"] = true;
+                }
                 row["IsFocusedRow"] = isFocusedRow;
                 lastRefresh = (DateTime)row["RefreshDate"];
             }
@@ -467,6 +474,18 @@ namespace DBADashGUI
                     {
                         dgvSummary.Rows[idx].Cells["SnapshotAgeStatus"].Value = TimeSpan.FromMinutes(snapshotAgeMin).Humanize(minUnit: TimeUnit.Minute, maxUnit: TimeUnit.Year) + " to " + TimeSpan.FromMinutes(snapshotAgeMax).Humanize(minUnit: TimeUnit.Minute, maxUnit: TimeUnit.Year);
                     }
+                }
+                // A pause takes over the collection dates cell (and its status colour) so it can't be missed
+                if (row.Row.Table.Columns.Contains("CollectionsPausedUntil") && row["CollectionsPausedUntil"] is DateTime pausedUntil)
+                {
+                    var pausedCount = Convert.ToInt32(row["PausedCount"]);
+                    var pausedCell = dgvSummary.Rows[idx].Cells["SnapshotAgeStatus"];
+                    pausedCell.Value = isAzure
+                        ? $"{pausedCount} DB(s) paused"
+                        : $"Paused until {CollectionDates.PauseCollections.FormatPausedUntil(pausedUntil)}";
+                    pausedCell.ToolTipText = CollectionDates.PauseCollections.PausedToolTip(pausedUntil);
+                    pausedCell.SetColor(DashColors.BluePale, DashColors.BlueDark, DashColors.BlueLight, Color.White);
+                    dgvSummary.Rows[idx].Cells["Instance"].ToolTipText = pausedCell.ToolTipText;
                 }
                 if (row["DaysSinceLastGoodCheckDB"] != DBNull.Value)
                 {
