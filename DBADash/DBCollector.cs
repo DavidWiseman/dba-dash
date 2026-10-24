@@ -96,7 +96,8 @@ namespace DBADash
         AGHealthEvents,
         QueryStats,
         LatchStats,
-        SpinlockStats
+        SpinlockStats,
+        ServiceBroker
     }
 
     public enum HostPlatform
@@ -1783,6 +1784,10 @@ OPTION(RECOMPILE)"); // Plan caching is not beneficial.  RECOMPILE hint to avoid
             {
                 await CollectQueryStatsAsync();
             }
+            else if (collectionType == CollectionType.ServiceBroker)
+            {
+                await CollectServiceBrokerAsync();
+            }
             else if (collectionType == CollectionType.RunningJobs)
             {
                 await CollectRunningJobsAsync();
@@ -2168,6 +2173,32 @@ OPTION(RECOMPILE)"); // Plan caching is not beneficial.  RECOMPILE hint to avoid
             if (result.Events.Rows.Count > 0)
             {
                 Log.Debug("Collected {count} AlwaysOn_health event(s) on {instance}", result.Events.Rows.Count, instanceName);
+            }
+        }
+
+        /// <summary>
+        /// Service Broker queues, transmission queue, conversations, endpoint and counters.  One query returning a
+        /// result set for each - see <see cref="ServiceBrokerTables"/> for the table names, which DBImporter keys off.
+        /// </summary>
+        private async Task CollectServiceBrokerAsync()
+        {
+            await using var cn = new SqlConnection(ConnectionString);
+            await using var cmd = new SqlCommand(SetArithAbortOn + SqlStrings.ServiceBroker, cn) { CommandTimeout = CollectionType.ServiceBroker.GetCommandTimeout() };
+            using var da = new SqlDataAdapter(cmd);
+            await cn.OpenAsync();
+            var ds = new DataSet();
+            da.Fill(ds);
+            if (ds.Tables.Count != ServiceBrokerTables.TableNames.Length)
+            {
+                throw new Exception($"Service Broker collection returned {ds.Tables.Count} result sets.  Expected {ServiceBrokerTables.TableNames.Length}.");
+            }
+
+            for (var i = 0; i < ServiceBrokerTables.TableNames.Length; i++)
+            {
+                var dt = ds.Tables[0];
+                ds.Tables.Remove(dt);
+                dt.TableName = ServiceBrokerTables.TableNames[i];
+                AddDT(dt);
             }
         }
 

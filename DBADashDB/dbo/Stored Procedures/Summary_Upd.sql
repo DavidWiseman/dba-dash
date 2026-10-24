@@ -188,6 +188,27 @@ WHERE IsActive = 1
 AND state IN(3,4,5) /* Recovery Pending, Suspect, Emergency */
 GROUP BY InstanceID
 
+/* Service Broker collection is off by default.  Instances without it are N/A */
+SELECT II.InstanceID,
+		II.ServiceBrokerStatus,
+		LEFT(STUFF(CONCAT(
+			CASE WHEN Q.CriticalCount > 0 OR Q.WarningCount > 0 THEN CONCAT('; Queues: ', Q.CriticalCount, ' critical, ', Q.WarningCount, ' warning') END,
+			CASE WHEN DB.CriticalCount > 0 OR DB.WarningCount > 0 THEN CONCAT('; Databases: ', DB.CriticalCount, ' critical, ', DB.WarningCount, ' warning') END,
+			'; ' + II.Issues
+			),1,2,''),500) AS ServiceBrokerStatusDescription
+INTO #ServiceBrokerStatus
+FROM dbo.ServiceBrokerInstanceInfo II
+OUTER APPLY(SELECT	SUM(CASE WHEN QI.QueueStatus = 1 THEN 1 ELSE 0 END) AS CriticalCount,
+					SUM(CASE WHEN QI.QueueStatus = 2 THEN 1 ELSE 0 END) AS WarningCount
+			FROM dbo.ServiceBrokerQueueInfo QI
+			WHERE QI.InstanceID = II.InstanceID
+			) Q
+OUTER APPLY(SELECT	SUM(CASE WHEN DI.DatabaseStatus = 1 THEN 1 ELSE 0 END) AS CriticalCount,
+					SUM(CASE WHEN DI.DatabaseStatus = 2 THEN 1 ELSE 0 END) AS WarningCount
+			FROM dbo.ServiceBrokerDatabaseInfo DI
+			WHERE DI.InstanceID = II.InstanceID
+			) DB
+
 SELECT	EPS.InstanceID,
 		MIN(NULLIF(EPS.ElasticPoolStorageStatus,3)) ElasticPoolStorageStatus
 INTO #ElasticPoolStatus
@@ -269,7 +290,9 @@ SELECT I.InstanceID,
 	Ident.MinIdentityEstimatedDays,
 	CASE WHEN LastOffline.Iscurrent=1 THEN LastOffline.FirstFail ELSE NULL END AS OfflineSince,
 	LastOffline.LastFail,
-	OSInfoCD.SnapshotDate AS OSInfoSnapshotDate
+	OSInfoCD.SnapshotDate AS OSInfoSnapshotDate,
+	ISNULL(SB.ServiceBrokerStatus,3) AS ServiceBrokerStatus,
+	SB.ServiceBrokerStatusDescription
 INTO #Summary
 FROM dbo.Instances I 
 OUTER APPLY(
@@ -312,6 +335,7 @@ LEFT JOIN #MirroringStatus dbm ON dbm.InstanceID = I.InstanceID
 LEFT JOIN #QueryStoreStatus QS ON QS.InstanceID = I.InstanceID
 LEFT JOIN #IdentityStatus Ident ON Ident.InstanceID = I.InstanceID
 LEFT JOIN #DatabaseStateStatus DBState ON I.InstanceID = DBState.InstanceID
+LEFT JOIN #ServiceBrokerStatus SB ON I.InstanceID = SB.InstanceID
 OUTER APPLY(
 			SELECT TOP(1)	FirstFail,
 							LastFail,
@@ -387,7 +411,9 @@ SELECT I.InstanceID,
 	Ident.MinIdentityEstimatedDays,
 	CASE WHEN LastOffline.Iscurrent=1 THEN LastOffline.FirstFail ELSE NULL END AS OfflineSince,
 	LastOffline.FirstFail,
-	CAST(NULL AS DATETIME2) AS OSInfoSnapshotDate 
+	CAST(NULL AS DATETIME2) AS OSInfoSnapshotDate,
+	3 AS ServiceBrokerStatus,
+	NULL AS ServiceBrokerStatusDescription
 FROM dbo.Instances I
 LEFT JOIN #CollectionErrorStatus errSummary  ON I.InstanceID = errSummary.InstanceID
 LEFT JOIN #FileGroupStatus F ON I.InstanceID = F.InstanceID
@@ -476,7 +502,9 @@ INSERT INTO dbo.Summary(
 	MinIdentityEstimatedDays,
 	OfflineSince,
 	LastFail,
-	OSInfoSnapshotDate
+	OSInfoSnapshotDate,
+	ServiceBrokerStatus,
+	ServiceBrokerStatusDescription
 )
 SELECT InstanceID,
 	Instance,
@@ -542,7 +570,9 @@ SELECT InstanceID,
 	MinIdentityEstimatedDays,
 	OfflineSince,
 	LastFail,
-	OSInfoSnapshotDate
+	OSInfoSnapshotDate,
+	ServiceBrokerStatus,
+	ServiceBrokerStatusDescription
 FROM #Summary
 
 COMMIT
