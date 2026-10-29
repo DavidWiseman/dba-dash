@@ -138,13 +138,20 @@ namespace DBADashGUI
             return dt;
         }
 
-        public static DataTable ObjectExecutionStats(int instanceID, int databaseID, long objectID, int dateGrouping, string measure, DateTime FromDate, DateTime ToDate, string instance = "", int top = 10, bool includeOther = false)
+        public static async Task<DataTable> ObjectExecutionStatsAsync(int instanceID, int databaseID, long objectID, int dateGrouping, string measure, DateTime FromDate, DateTime ToDate, string instance = "", int top = 10, bool includeOther = false, CancellationToken token = default)
         {
-            using var cn = new SqlConnection(Common.ConnectionString);
-            using var cmd = new SqlCommand("dbo.ObjectExecutionStats_Get", cn) { CommandType = CommandType.StoredProcedure };
-            using var da = new SqlDataAdapter(cmd);
-            cn.Open();
+            await using var cn = new SqlConnection(Common.ConnectionString);
+            await using var cmd = ObjectExecutionStatsCommand(cn, instanceID, databaseID, objectID, dateGrouping, measure, FromDate, ToDate, instance, top, includeOther);
+            await cn.OpenAsync(token);
+            await using var rdr = await cmd.ExecuteReaderAsync(token);
+            var dt = new DataTable();
+            dt.Load(rdr);
+            return dt;
+        }
 
+        private static SqlCommand ObjectExecutionStatsCommand(SqlConnection cn, int instanceID, int databaseID, long objectID, int dateGrouping, string measure, DateTime FromDate, DateTime ToDate, string instance, int top, bool includeOther)
+        {
+            var cmd = new SqlCommand("dbo.ObjectExecutionStats_Get", cn) { CommandType = CommandType.StoredProcedure };
             cmd.Parameters.AddIfGreaterThanZero("InstanceID", instanceID);
             cmd.Parameters.AddStringIfNotNullOrEmpty("InstanceGroupName", instance);
             cmd.Parameters.AddWithValue("FromDateUTC", FromDate);
@@ -164,9 +171,7 @@ namespace DBADashGUI
             {
                 cmd.Parameters.AddWithValue("DaysOfWeek", DateRange.DayOfWeek.AsDataTable());
             }
-            DataTable dt = new();
-            da.Fill(dt);
-            return dt;
+            return cmd;
         }
 
         public static DataTable GetJobSteps(int InstanceID, Guid JobID)
