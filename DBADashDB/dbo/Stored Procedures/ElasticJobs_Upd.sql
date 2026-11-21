@@ -2,7 +2,9 @@
 	Imports the Elastic Jobs collection - the jobs, steps, target group members and executions of an elastic job agent, from its job database.
 
 	Jobs, steps and target group members (the definitions) are the full set, sent only when they've changed - @DefinitionsIncluded.  Jobs
-	that are no longer there are marked inactive.  Steps and members that are no longer there are removed.
+	that are no longer there are marked inactive.  Steps and members that are no longer there are removed.  Collections can be imported
+	out of order, so definitions from a collection older than the last imported (dbo.CollectionDates) are ignored.  Where that collection
+	had no definitions, a change in them waits for the collector to send them again - at least hourly.
 
 	Executions are the ones created since a little before the previous collection, and any still running then.  They are updated
 	in place in the job database as they progress, so they are upserted here.  Collecting a row again does no harm - only a change is
@@ -104,10 +106,25 @@ CREATE TABLE #Changed(
 	WasActive BIT NULL
 )
 
+DECLARE @ApplyDefinitions BIT = @DefinitionsIncluded
+
 BEGIN TRAN
 
+/* Older than the last collection imported - imported out of order */
+IF @ApplyDefinitions = 1
+	AND EXISTS(
+			SELECT 1
+			FROM dbo.CollectionDates WITH(UPDLOCK,HOLDLOCK)
+			WHERE InstanceID = @InstanceID
+			AND Reference = @Ref
+			AND SnapshotDate > @SnapshotDate
+			)
+BEGIN
+	SET @ApplyDefinitions = 0
+END
+
 /* The definitions are only sent when they have changed.  Without them, the jobs are left as they are - an empty @ElasticJobs would mark them all deleted. */
-IF @DefinitionsIncluded = 1
+IF @ApplyDefinitions = 1
 BEGIN
 	/* Jobs */
 	UPDATE J
@@ -202,7 +219,7 @@ WHERE NOT EXISTS(
 GROUP BY E.job_id
 
 /* Steps and target group members - only sent with the jobs */
-IF @DefinitionsIncluded = 1
+IF @ApplyDefinitions = 1
 BEGIN
 	/* Steps (current version of each job) */
 	DELETE S
@@ -414,6 +431,8 @@ JOIN #Executions T ON E.create_time = T.create_time
 					AND E.step_id = T.step_id
 					AND E.TargetKey = T.TargetKey
 WHERE E.InstanceID = @InstanceID
+/* Complete is final.  An execution seen running in a collection imported out of order doesn't go back to running. */
+AND NOT (E.is_active = 0 AND T.is_active = 1)
 /* Only where something changed - active executions are collected every time */
 AND EXISTS(
 		SELECT E.job_version, E.is_active, E.lifecycle, E.start_time, E.end_time, E.current_attempts, E.current_attempt_start_time, E.next_attempt_start_time, E.last_message, E.step_name

@@ -198,7 +198,8 @@ namespace DBADashGUI.ElasticJobs
             }
             else if (!string.IsNullOrEmpty(pool))
             {
-                label = pool + " (pool)";
+                // Qualified as a database is - the label is the target's row, so pools of the same name on two servers would share one
+                label = (includeServer && !string.IsNullOrEmpty(server) ? ShortServerName(server) + "/" + pool : pool) + " (pool)";
             }
             else
             {
